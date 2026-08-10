@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Windows.Data;
+using DmC.Qa.Shared;
 
 namespace DmC.Qa.Tester;
 
