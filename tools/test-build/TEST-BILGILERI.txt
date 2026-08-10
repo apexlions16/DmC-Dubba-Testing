@@ -1,0 +1,57 @@
+OYUN QA PLATFORMU - WINDOWS TEST BUILD
+======================================
+
+BU PAKET NE İÇİN?
+-----------------
+Bu paket uygulamanın ilk uçtan uca yerel test sürümüdür. Hugging Face write yetkisi henüz bağlı olmadığı için videolar ve test build dosyaları bu pakette bilgisayarınızdaki test-data klasöründe saklanır. Masaüstü uygulamalarının kullanımı production akışıyla aynıdır; daha sonra backend STORAGE_MODE=hf ve HF_TOKEN ile Hugging Face Storage Bucket'a geçirilecektir.
+
+BAŞLATMA
+--------
+1. ZIP dosyasını normal bir klasöre çıkarın.
+2. Baslat-Test-Ortami.cmd dosyasına çift tıklayın.
+3. Yerel QA sunucusu otomatik açılır.
+4. Yönetim Merkezi ve Tester uygulaması otomatik açılır.
+
+İLK HAZIR HESAPLAR
+------------------
+Yönetim Merkezi adı:
+Yönetici
+
+Tester uygulaması adı:
+Test Kullanıcısı
+
+Bu hesaplar ilk açılışta otomatik oluşturulur.
+
+ÖNERİLEN İLK TEST AKIŞI
+-----------------------
+1. Yönetim Merkezi'ne "Yönetici" adıyla girin.
+2. Ekip Yönetimi'nden Ahmet / Mehmet gibi tester hesapları ve gerekiyorsa ikinci bir Yönetici hesabı oluşturun.
+3. Proje Ayarları'ndan kullanıcıları DmC projesine ekleyin.
+4. Mission / bölüm kayıtlarını ekleyin.
+5. Test Sürümleri bölümünden küçük bir ZIP dosyasını örnek test build'i olarak yükleyin.
+6. Yüklenen sürümü Güncel Test Sürümü yapın.
+7. Yeni Ortak Görev oluşturup testerları, build'i, bölümü ve deadline'ı atayın.
+8. Tester uygulamasından "Test Kullanıcısı" ile girin.
+9. Güncel build'i uygulamadan indirin; SHA-256 doğrulamasını ve kurulum talimatını kontrol edin.
+10. Tester tarafından bir hata raporu oluşturup MP4 video ekleyin.
+11. Yönetim Merkezi'nde hata satırına çift tıklayın; videoyu açın, timestamp'e atlayın, durum ve kök nedeni değiştirin.
+12. Aynı ekrandan bir veya birden fazla testera Yeniden Test isteyin.
+13. Tester uygulamasında yeniden testi tamamlayın; başarılı / başarısız / emin değilim sonuçlarını deneyin.
+14. Yönetici olarak bildirim ve Okunması Zorunlu duyuru gönderin; tester aksiyonlarının onay verilene kadar kilitlendiğini doğrulayın.
+15. İkinci bir proje açıp çoklu proje görünümünü kontrol edin.
+16. Kalıcı silmeyi test etmek isterseniz önce projeyi kapatın, ikinci bir admin hesabı oluşturun ve iki yönetici onay akışını yalnız test verisi üzerinde deneyin.
+
+VERİLER NEREDE?
+---------------
+Server\GameQaServer\test-data\qa-platform.db
+Server\GameQaServer\test-data\storage\
+
+Paket klasörünü tamamen silerseniz yerel test verileri de silinir.
+
+SUNUCUYU KAPATMA
+----------------
+Sunucuyu-Durdur.cmd dosyasını çalıştırın.
+
+ÖNEMLİ
+------
+Bu build production değildir. Gerçek proje test videolarını bu yerel build'e yüklemeyin. Hugging Face Storage Bucket bağlantısı write token ile production deployment aşamasında etkinleştirilecektir.
