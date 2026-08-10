@@ -105,13 +105,64 @@ public sealed class QaApiClient
         return await response.Content.ReadFromJsonAsync<IssueProgress>(_json, cancellationToken);
     }
 
-    public async Task<string> SubmitBugAsync(object payload, CancellationToken cancellationToken = default)
+    public async Task<BugCreatedResponse> SubmitBugAsync(
+        object payload,
+        CancellationToken cancellationToken = default)
     {
         using var response = await _http.PostAsJsonAsync("bugs", payload, _json, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-        return document.RootElement.GetProperty("key").GetString()
-               ?? throw new QaApiException("Hata raporu yanıtında rapor kimliği bulunamadı.");
+        return await response.Content.ReadFromJsonAsync<BugCreatedResponse>(_json, cancellationToken)
+               ?? throw new QaApiException("Hata raporu yanıtı okunamadı.");
+    }
+
+    public Task<EvidenceUploadResponse> UploadBugEvidenceAsync(
+        string bugId,
+        string filePath,
+        CancellationToken cancellationToken = default)
+        => UploadEvidenceAsync($"bugs/{bugId}/evidence", filePath, cancellationToken);
+
+    public Task<EvidenceUploadResponse> UploadRetestEvidenceAsync(
+        string retestRequestId,
+        string filePath,
+        CancellationToken cancellationToken = default)
+        => UploadEvidenceAsync($"retests/{retestRequestId}/evidence", filePath, cancellationToken);
+
+    private async Task<EvidenceUploadResponse> UploadEvidenceAsync(
+        string endpoint,
+        string filePath,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(filePath))
+        {
+            throw new QaApiException("Yüklenecek video veya kanıt dosyası bulunamadı.");
+        }
+
+        await using var fileStream = File.OpenRead(filePath);
+        using var fileContent = new StreamContent(fileStream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(MediaTypeForFile(filePath));
+
+        using var form = new MultipartFormDataContent();
+        form.Add(fileContent, "file", Path.GetFileName(filePath));
+
+        using var response = await _http.PostAsync(endpoint, form, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<EvidenceUploadResponse>(_json, cancellationToken)
+               ?? throw new QaApiException("Video yükleme yanıtı okunamadı.");
+    }
+
+    private static string MediaTypeForFile(string filePath)
+    {
+        return Path.GetExtension(filePath).ToLowerInvariant() switch
+        {
+            ".mp4" => "video/mp4",
+            ".mov" => "video/quicktime",
+            ".mkv" => "video/x-matroska",
+            ".webm" => "video/webm",
+            ".avi" => "video/x-msvideo",
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            _ => "application/octet-stream"
+        };
     }
 
     private static async Task EnsureSuccessAsync(
