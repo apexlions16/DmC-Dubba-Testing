@@ -12,6 +12,7 @@ from .local_test import ensure_local_test_seed
 from .notification_api import router as notification_router
 from .release_api import router as release_router
 from .retest_api import router as retest_router
+from .tester_api import router as tester_router
 
 app = main_module.app
 
@@ -26,6 +27,7 @@ app.include_router(evidence_router)
 app.include_router(notification_router)
 app.include_router(retest_router)
 app.include_router(release_router)
+app.include_router(tester_router)
 
 _original_lifespan = app.router.lifespan_context
 
