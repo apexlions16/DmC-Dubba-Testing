@@ -1,56 +1,93 @@
 <Window x:Class="DmC.Qa.Admin.ProjectManagementWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Proje Ayarları" Height="760" Width="980" MinHeight="680" MinWidth="860"
-        WindowStartupLocation="CenterOwner" Background="{StaticResource SurfaceBrush}" Foreground="White">
-    <TabControl Margin="18" Background="Transparent">
-        <TabItem Header="Mevcut Proje">
-            <Grid Margin="16">
-                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,10,0">
-                    <StackPanel>
-                        <TextBlock x:Name="CurrentProjectText" FontSize="18" FontWeight="Bold"/>
-                        <TextBlock Text="PROJE ÜYELERİ" FontWeight="Bold" Margin="0,16,0,8"/>
-                        <ListBox x:Name="UsersList" Height="430" Background="#111318" Foreground="White">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <CheckBox IsChecked="{Binding Selected}" Foreground="White" Padding="4">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                            <TextBlock Text="  •  "/><TextBlock Text="{Binding Role}" Foreground="{StaticResource MutedBrush}"/>
-                                        </StackPanel>
-                                    </CheckBox>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                        <Button x:Name="SaveMembersButton" Content="Proje Üyelerini Kaydet" HorizontalAlignment="Left" Background="{StaticResource AccentBrush}" Foreground="White" Margin="0,10,0,0" Click="SaveMembersButton_Click"/>
+        Title="Proje Ayarları" Height="790" Width="1040" MinHeight="700" MinWidth="900"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource WindowBackgroundBrush}" Foreground="White">
+    <Grid Background="{StaticResource WindowBackgroundBrush}">
+        <TabControl Margin="22" Background="Transparent" BorderBrush="#294675">
+            <TabItem Header="Mevcut Proje">
+                <Grid Margin="18">
+                    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+                        <StackPanel>
+                            <TextBlock x:Name="CurrentProjectText" FontSize="21" FontWeight="Bold"/>
+                            <TextBlock Text="PROJE ÜYELERİ" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11" Margin="0,18,0,8"/>
+                            <TextBlock Text="Bu projeyi görebilecek ve projeye atanabilecek kullanıcıları seçin." Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                            <ListBox x:Name="UsersList" Height="430" Background="#07101E" Foreground="White" BorderBrush="#263E68" BorderThickness="1">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Selected}" Foreground="White" Padding="5">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="  •  "/><TextBlock Text="{Binding Role}" Foreground="{StaticResource MutedBrush}"/>
+                                            </StackPanel>
+                                        </CheckBox>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <Button x:Name="SaveMembersButton" Content="Proje Üyelerini Kaydet" Style="{StaticResource AccentButton}"
+                                    HorizontalAlignment="Left" Margin="0,12,0,0" Click="SaveMembersButton_Click"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="BÖLÜMLER" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
+                            <TextBlock Text="Mission, Chapter, Level veya proje özelindeki diğer test bölümleri." Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,10"/>
+                            <ListBox x:Name="SectionsList" Height="365" Margin="0,0,0,14" DisplayMemberPath="Name" Background="#07101E" Foreground="White" BorderBrush="#263E68" BorderThickness="1"/>
+                            <TextBlock Text="Yeni Bölüm / Mission / Chapter" FontWeight="SemiBold"/>
+                            <TextBox x:Name="SectionNameInput" Height="38" Margin="0,6,0,8"/>
+                            <Button Content="Bölüm Ekle" HorizontalAlignment="Left" Click="AddSectionButton_Click"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,14,0,0" Padding="16" CornerRadius="14"
+                            Background="#281A0A12" BorderBrush="#7A3040" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="TEHLİKELİ İŞLEMLER" Foreground="#FF8995" FontWeight="Bold" FontSize="11"/>
+                                <TextBlock Text="Kalıcı silme yalnızca kapalı projelerde, proje adı + tek kullanımlık kod + ikinci farklı yönetici onayıyla çalışır."
+                                           Foreground="#C59CA3" FontSize="11" TextWrapping="Wrap" Margin="0,5,18,0"/>
+                            </StackPanel>
+                            <Button x:Name="PurgeProjectButton" Grid.Column="1" Content="Güvenli Kalıcı Silme" VerticalAlignment="Center"
+                                    Background="#32121A" BorderBrush="#A23A4A" Foreground="#FFD4D9" Click="PurgeProjectButton_Click"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Yeni Proje">
+                <Grid Margin="24">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="0.9*"/></Grid.ColumnDefinitions>
+                    <StackPanel MaxWidth="620" HorizontalAlignment="Left">
+                        <TextBlock Text="YENİ OYUN / QA PROJESİ" FontSize="23" FontWeight="Bold"/>
+                        <TextBlock Text="Aynı platformda aynı anda birden fazla oyun veya QA projesi çalışabilir."
+                                   Foreground="{StaticResource MutedBrush}" Margin="0,6,0,22" TextWrapping="Wrap"/>
+                        <TextBlock Text="Proje Adı" FontWeight="SemiBold"/>
+                        <TextBox x:Name="NewProjectNameInput" Height="40" Margin="0,6,0,12"/>
+                        <TextBlock Text="Proje Anahtarı" FontWeight="SemiBold"/>
+                        <TextBlock Text="Küçük harf, sayı ve tire kullanın. Örn: dmc-turkce-dublaj" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                        <TextBox x:Name="NewProjectKeyInput" Height="40" Margin="0,6,0,12"/>
+                        <TextBlock Text="Bölüm Adlandırması" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="SectionLabelPicker" Height="40" Margin="0,6,0,18" SelectedIndex="0">
+                            <ComboBoxItem Content="Mission"/><ComboBoxItem Content="Chapter"/><ComboBoxItem Content="Level"/><ComboBoxItem Content="Episode"/><ComboBoxItem Content="Bölüm"/>
+                        </ComboBox>
+                        <Button x:Name="CreateProjectButton" Content="Projeyi Oluştur" Style="{StaticResource AccentButton}"
+                                HorizontalAlignment="Left" Click="CreateProjectButton_Click"/>
                     </StackPanel>
-                </Border>
-                <Border Grid.Column="1" Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="BÖLÜMLER" FontWeight="Bold"/>
-                        <ListBox x:Name="SectionsList" Height="390" Margin="0,8,0,12" DisplayMemberPath="Name" Background="#111318" Foreground="White"/>
-                        <TextBlock Text="Yeni Bölüm / Mission / Chapter" Foreground="{StaticResource MutedBrush}"/>
-                        <TextBox x:Name="SectionNameInput" Height="34" Margin="0,5,0,8"/>
-                        <Button Content="Bölüm Ekle" HorizontalAlignment="Left" Click="AddSectionButton_Click"/>
-                    </StackPanel>
-                </Border>
-            </Grid>
-        </TabItem>
-        <TabItem Header="Yeni Proje">
-            <StackPanel Margin="24" MaxWidth="600" HorizontalAlignment="Left">
-                <TextBlock Text="YENİ OYUN / QA PROJESİ" FontSize="21" FontWeight="Bold"/>
-                <TextBlock Text="Aynı platformda aynı anda birden fazla proje çalışabilir." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,18"/>
-                <TextBlock Text="Proje Adı"/>
-                <TextBox x:Name="NewProjectNameInput" Height="36" Margin="0,5,0,10"/>
-                <TextBlock Text="Proje Anahtarı (küçük harf, tire)"/>
-                <TextBox x:Name="NewProjectKeyInput" Height="36" Margin="0,5,0,10"/>
-                <TextBlock Text="Bölüm Adlandırması"/>
-                <ComboBox x:Name="SectionLabelPicker" Height="36" Margin="0,5,0,16" SelectedIndex="0">
-                    <ComboBoxItem Content="Mission"/><ComboBoxItem Content="Chapter"/><ComboBoxItem Content="Level"/><ComboBoxItem Content="Episode"/><ComboBoxItem Content="Bölüm"/>
-                </ComboBox>
-                <Button x:Name="CreateProjectButton" Content="Projeyi Oluştur" HorizontalAlignment="Left" Background="{StaticResource AccentBrush}" Foreground="White" Click="CreateProjectButton_Click"/>
-            </StackPanel>
-        </TabItem>
-    </TabControl>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="24,0,0,0" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="PROJE İZOLASYONU" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
+                            <TextBlock Text="Her proje kendi build, görev, hata, retest, üye ve medya alanında tutulur." TextWrapping="Wrap" FontSize="14" Margin="0,12,0,10"/>
+                            <TextBlock Text="• Tester yalnız atandığı projeleri görür.\n• Build geçmişi proje bazındadır.\n• Proje kapatma veri silmez.\n• Kalıcı silme başka projenin verisine dokunamaz."
+                                       Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" LineHeight="24"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
 </Window>
