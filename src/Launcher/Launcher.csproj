@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
     <AssemblyName>DmC-Dub-QA</AssemblyName>
     <RootNamespace>DmC.Qa.Launcher</RootNamespace>
   </PropertyGroup>
