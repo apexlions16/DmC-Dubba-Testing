@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private ProjectSummary? _currentProject;
     private TaskSummary? _currentTask;
     private BuildSummary? _currentBuild;
+    private List<RetestAssignment> _pendingRetests = [];
 
     public MainWindow()
     {
@@ -42,6 +43,7 @@ public partial class MainWindow : Window
         });
 
         ReportBugButton.IsEnabled = false;
+        RetestButton.IsEnabled = false;
         LoadLocalProfile();
         Loaded += MainWindow_Loaded;
     }
@@ -125,6 +127,7 @@ public partial class MainWindow : Window
             _api.ClearAuthentication();
             _hasAuthenticatedCredential = false;
             ReportBugButton.IsEnabled = false;
+            RetestButton.IsEnabled = false;
             EnrollmentOverlay.Visibility = Visibility.Visible;
             EnrollmentError.Text = ex.Message;
             SetConnectionState("● Oturum doğrulanamadı", "#EF5350");
@@ -143,6 +146,9 @@ public partial class MainWindow : Window
     {
         var projects = await _api.GetProjectsAsync();
         var tasks = await _api.GetMyTasksAsync();
+        _pendingRetests = (await _api.GetMyRetestsAsync()).ToList();
+        RetestCount.Text = _pendingRetests.Count.ToString(TurkishUi.Culture);
+        RetestButton.IsEnabled = _pendingRetests.Count > 0;
 
         ProjectsList.Items.Clear();
         foreach (var projectItem in projects)
@@ -232,9 +238,39 @@ public partial class MainWindow : Window
             {
                 await LoadDashboardAsync();
             }
-            catch (Exception)
+            catch
             {
                 SetConnectionState("● Rapor gönderildi, özet yenilenemedi", "#F9A825");
+            }
+        }
+    }
+
+    private async void RetestButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pendingRetests.Count == 0)
+        {
+            MessageBox.Show(
+                "Şu anda sizden beklenen bir yeniden test bulunmuyor.",
+                "Yeniden Test",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var dialog = new RetestWindow(_api, _pendingRetests)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                await LoadDashboardAsync();
+            }
+            catch
+            {
+                SetConnectionState("● Yeniden test kaydedildi, özet yenilenemedi", "#F9A825");
             }
         }
     }
