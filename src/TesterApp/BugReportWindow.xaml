@@ -75,7 +75,7 @@
 
                 <Border Style="{StaticResource CardStyle}" Margin="0,0,0,17">
                     <StackPanel>
-                        <TextBlock Text="TEKRAR ÜRETME & ZAMAN KODU" Foreground="#7FA4FF" FontSize="10" FontWeight="Bold" Margin="0,0,0,13" />
+                        <TextBlock Text="TEKRAR ÜRETME &amp; ZAMAN KODU" Foreground="#7FA4FF" FontSize="10" FontWeight="Bold" Margin="0,0,0,13" />
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="1.35*"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
