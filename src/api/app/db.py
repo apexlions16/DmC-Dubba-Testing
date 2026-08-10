@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./qa-platform.db"
     hf_bucket_id: str = "xykeskin/dmc-turkish-dub-qa-archive"
     hf_token: str | None = None
+    bootstrap_key: str | None = None
 
 
 settings = Settings()
