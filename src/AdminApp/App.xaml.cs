@@ -29,12 +29,7 @@ public partial class App : Application
         {
             LoadRuntimeTheme();
 
-            var apiBaseUrl = Environment.GetEnvironmentVariable("GAME_QA_API") ?? "http://localhost:7860/";
-            if (!apiBaseUrl.EndsWith('/'))
-            {
-                apiBaseUrl += "/";
-            }
-            var baseUri = new Uri(apiBaseUrl);
+            var baseUri = ApiEndpointResolver.Resolve();
 
             var api = new QaApiClient(new HttpClient
             {
