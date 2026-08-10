@@ -38,6 +38,18 @@ public enum NotificationSeverity
     MustRead
 }
 
+public sealed record DeviceEnrollmentResponse(
+    string UserId,
+    string DisplayName,
+    string Role,
+    string DeviceId,
+    string Credential);
+
+public sealed record CurrentUserSummary(
+    string Id,
+    string DisplayName,
+    string Role);
+
 public sealed record ProjectSummary(
     string Id,
     string Key,
