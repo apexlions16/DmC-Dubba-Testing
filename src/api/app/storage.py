@@ -102,16 +102,36 @@ class HfBucketStorage:
         batch_bucket_files(self.bucket_id, delete=[remote_path], token=self.token)
 
     def delete_prefix(self, prefix: str) -> int:
-        if not self.local:
-            raise RuntimeError(
-                "HF üzerinde prefix purge, iki yönetici onaylı üretim silme akışı tamamlanmadan çalıştırılamaz."
-            )
-        root = self._local_path(prefix)
-        if not root.exists():
+        clean_prefix = "/".join(safe_segment(part) for part in prefix.strip("/").split("/") if part)
+        if self.local:
+            root = self._local_path(clean_prefix)
+            if not root.exists():
+                return 0
+            file_count = sum(1 for path in root.rglob("*") if path.is_file())
+            shutil.rmtree(root)
+            return file_count
+
+        assert self.fs is not None
+        root_uri = f"hf://buckets/{self.bucket_id}/{clean_prefix}"
+        try:
+            found = list(self.fs.find(root_uri))
+        except FileNotFoundError:
             return 0
-        file_count = sum(1 for path in root.rglob("*") if path.is_file())
-        shutil.rmtree(root)
-        return file_count
+        remote_paths: list[str] = []
+        marker = f"buckets/{self.bucket_id}/"
+        for item in found:
+            normalized = str(item).replace("\\", "/")
+            if normalized.startswith("hf://"):
+                normalized = normalized.removeprefix("hf://")
+            if marker in normalized:
+                normalized = normalized.split(marker, 1)[1]
+            elif normalized.startswith(f"{self.bucket_id}/"):
+                normalized = normalized.removeprefix(f"{self.bucket_id}/")
+            if normalized.startswith(clean_prefix + "/") or normalized == clean_prefix:
+                remote_paths.append(normalized)
+        if remote_paths:
+            batch_bucket_files(self.bucket_id, delete=remote_paths, token=self.token)
+        return len(remote_paths)
 
     def archive_build(self, project_id: str, build_id: str, filename: str) -> str:
         source = self.active_build_path(project_id, build_id, filename)
