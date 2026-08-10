@@ -1,0 +1,28 @@
+<Window x:Class="DmC.Qa.Admin.AdminLoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="QA Yönetim Merkezi Girişi"
+        Height="470" Width="520"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource SurfaceBrush}" Foreground="White">
+    <Grid>
+        <Border Width="430" Padding="30" CornerRadius="14" Background="{StaticResource CardBrush}"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel>
+                <TextBlock Text="QA YÖNETİM MERKEZİ" FontSize="24" FontWeight="Bold" TextAlignment="Center" />
+                <TextBlock Text="Yönetici / Geliştirici Girişi" Foreground="{StaticResource MutedBrush}"
+                           TextAlignment="Center" Margin="0,6,0,24" />
+
+                <TextBlock Text="Adınız" FontWeight="SemiBold" Margin="0,0,0,6" />
+                <TextBox x:Name="DisplayNameInput" Height="40" Padding="8" FontSize="16" />
+                <TextBlock Text="İlk kullanımda bu bilgisayar yönetici hesabınızla eşleştirilir."
+                           Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,7,0,0" />
+
+                <TextBlock x:Name="StatusText" Foreground="#EF9A9A" TextWrapping="Wrap" Margin="0,14,0,0" />
+                <Button x:Name="LoginButton" Content="Giriş Yap" Height="44" Background="{StaticResource AccentBrush}"
+                        Foreground="White" Margin="0,20,0,0" Click="LoginButton_Click" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
