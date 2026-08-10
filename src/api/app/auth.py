@@ -35,17 +35,17 @@ def get_current_user(
         try:
             device_id, credential = value.split(".", 1)
         except ValueError as exc:
-            raise HTTPException(status_code=401, detail="Invalid device credential") from exc
+            raise HTTPException(status_code=401, detail="Geçersiz cihaz kimliği.") from exc
 
         device = db.get(models.Device, device_id)
         if device is None or device.revoked:
-            raise HTTPException(status_code=401, detail="Unknown or revoked device")
+            raise HTTPException(status_code=401, detail="Cihaz tanınmıyor veya erişimi kaldırılmış.")
         if not secrets.compare_digest(device.credential_hash, _credential_hash(credential)):
-            raise HTTPException(status_code=401, detail="Invalid device credential")
+            raise HTTPException(status_code=401, detail="Geçersiz cihaz kimliği.")
 
         user = db.get(models.User, device.user_id)
         if user is None or not user.enabled:
-            raise HTTPException(status_code=401, detail="Unknown or disabled user")
+            raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya devre dışı bırakılmış.")
 
         device.last_seen_at = datetime.now(UTC)
         db.commit()
@@ -56,7 +56,7 @@ def get_current_user(
         if user and user.enabled:
             return user
 
-    raise HTTPException(status_code=401, detail="Authentication required")
+    raise HTTPException(status_code=401, detail="Bu işlem için oturum açmanız gerekiyor.")
 
 
 CurrentUser = Annotated[models.User, Depends(get_current_user)]
@@ -65,7 +65,7 @@ CurrentUser = Annotated[models.User, Depends(get_current_user)]
 def require_roles(*roles: models.UserRole):
     def dependency(user: CurrentUser) -> models.User:
         if user.role not in roles:
-            raise HTTPException(status_code=403, detail="Insufficient role")
+            raise HTTPException(status_code=403, detail="Bu işlem için yeterli yetkiniz yok.")
         return user
 
     return dependency
