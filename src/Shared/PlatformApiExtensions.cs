@@ -23,6 +23,16 @@ public static class PlatformApiExtensions
         return await response.Content.ReadFromJsonAsync<List<AdminRetestItem>>(Json, cancellationToken) ?? [];
     }
 
+    public static async Task<IReadOnlyList<AdminUserSummary>> GetAllUsersAsync(
+        this PlatformApiClient client,
+        CancellationToken cancellationToken = default)
+    {
+        using var http = CreateHttp(client);
+        using var response = await http.GetAsync("admin/users", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<List<AdminUserSummary>>(Json, cancellationToken) ?? [];
+    }
+
     public static async Task CloseProjectAsync(
         this PlatformApiClient client,
         string projectId,
