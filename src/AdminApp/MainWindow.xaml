@@ -22,6 +22,7 @@
                     <Button Content="🐞  Hata Raporları" HorizontalContentAlignment="Left" />
                     <Button Content="🔁  Yeniden Testler" HorizontalContentAlignment="Left" />
                     <Button Content="👥  Test Yönetimi" HorizontalContentAlignment="Left" />
+                    <Button x:Name="TeamManagementButton" Content="🧑‍🤝‍🧑  Ekip Yönetimi" HorizontalContentAlignment="Left" Click="TeamManagementButton_Click" />
                     <Button Content="📦  Test Sürümleri" HorizontalContentAlignment="Left" />
                     <Button Content="🔔  Bildirimler" HorizontalContentAlignment="Left" />
                     <Button Content="🚀  İstemci Sürümleri" HorizontalContentAlignment="Left" />
@@ -91,10 +92,10 @@
                                         <TextBlock Text="Çubuk yalnızca raporlanmış ve geçerli sorunların yaşam döngüsünü gösterir." Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,3,0,14" />
                                         <Grid Height="18" ClipToBounds="True">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="1*" />
-                                                <ColumnDefinition Width="1*" />
-                                                <ColumnDefinition Width="1*" />
-                                                <ColumnDefinition Width="1*" />
+                                                <ColumnDefinition x:Name="ResolvedColumn" Width="1*" />
+                                                <ColumnDefinition x:Name="InProgressColumn" Width="1*" />
+                                                <ColumnDefinition x:Name="RetestColumn" Width="1*" />
+                                                <ColumnDefinition x:Name="NewColumn" Width="1*" />
                                             </Grid.ColumnDefinitions>
                                             <Border x:Name="ResolvedSegment" Grid.Column="0" Background="#43A047" CornerRadius="9,0,0,9" />
                                             <Border x:Name="InProgressSegment" Grid.Column="1" Background="#1E88E5" />
