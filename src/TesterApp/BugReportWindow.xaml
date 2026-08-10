@@ -1,151 +1,128 @@
 <Window x:Class="DmC.Qa.Tester.BugReportWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Hata Raporu Gönder"
-        Height="820" Width="720"
-        MinHeight="720" MinWidth="640"
+        Title="DmC QA • Hata Raporu"
+        Height="860" Width="780" MinHeight="750" MinWidth="680"
         WindowStartupLocation="CenterOwner"
-        Background="#17191D" Foreground="White">
-    <Window.Resources>
-        <SolidColorBrush x:Key="CardBrush" Color="#22252B" />
-        <SolidColorBrush x:Key="MutedBrush" Color="#A8AFBA" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#E53935" />
-        <Style TargetType="Button">
-            <Setter Property="Padding" Value="14,9" />
-            <Setter Property="Margin" Value="0,4,8,4" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Cursor" Value="Hand" />
-        </Style>
-        <Style TargetType="TextBox">
-            <Setter Property="Padding" Value="8" />
-            <Setter Property="Background" Value="#15171B" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#3A3E46" />
-        </Style>
-        <Style TargetType="ComboBox">
-            <Setter Property="Height" Value="36" />
-            <Setter Property="Padding" Value="8,4" />
-        </Style>
-    </Window.Resources>
-
-    <Grid>
+        Background="{StaticResource WindowBackgroundBrush}" Foreground="White">
+    <Grid Background="{StaticResource WindowBackgroundBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="64" />
+            <RowDefinition Height="86" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="70" />
+            <RowDefinition Height="78" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="#101216" Padding="22,0">
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="HATA RAPORU GÖNDER" FontSize="20" FontWeight="Bold" />
-                <TextBlock Text="Teknik terimleri bilmeniz gerekmez; gördüğünüz problemi mümkün olduğunca açık anlatın."
-                           Foreground="{StaticResource MutedBrush}" FontSize="11" />
-            </StackPanel>
+        <Border Grid.Row="0" Background="#C4081020" BorderBrush="#1D3765" BorderThickness="0,0,0,1" Padding="22,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Image Source="Assets/dmc-qa-logo.png" Width="64" Height="64" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,14,0" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="HATA RAPORU" Foreground="#739AFF" FontSize="10" FontWeight="Bold" />
+                    <TextBlock Text="Gördüğün problemi hızlıca ekibe gönder" FontSize="22" FontWeight="Bold" Margin="0,2,0,0" />
+                    <TextBlock Text="Teknik terim bilmen gerekmiyor; ne gördüğünü açıkça anlatman yeterli."
+                               Foreground="{StaticResource MutedBrush}" FontSize="11" />
+                </StackPanel>
+            </Grid>
         </Border>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="24">
-                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="14" Margin="0,0,0,16">
+            <StackPanel Margin="24,20,24,24">
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,17">
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1*" />
-                            <ColumnDefinition Width="1*" />
-                            <ColumnDefinition Width="1*" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                            <TextBlock Text="PROJE" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" />
-                            <TextBlock x:Name="ProjectText" Text="—" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,4,0,0" />
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                            <TextBlock Text="PROJE" Foreground="#7FA4FF" FontSize="10" FontWeight="Bold" />
+                            <TextBlock x:Name="ProjectText" Text="—" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,5,0,0" />
                         </StackPanel>
-                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                            <TextBlock Text="GÖREV" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" />
-                            <TextBlock x:Name="TaskText" Text="—" TextWrapping="Wrap" Margin="0,4,0,0" />
+                        <StackPanel Grid.Column="1" Margin="0,0,14,0">
+                            <TextBlock Text="GÖREV" Foreground="#7FA4FF" FontSize="10" FontWeight="Bold" />
+                            <TextBlock x:Name="TaskText" Text="—" TextWrapping="Wrap" Margin="0,5,0,0" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="TEST SÜRÜMÜ" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" />
-                            <TextBlock x:Name="BuildText" Text="—" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <TextBlock Text="TEST BUILD'İ" Foreground="#7FA4FF" FontSize="10" FontWeight="Bold" />
+                            <TextBlock x:Name="BuildText" Text="—" TextWrapping="Wrap" Margin="0,5,0,0" />
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <TextBlock Text="Başlık" FontWeight="SemiBold" Margin="0,0,0,5" />
-                <TextBox x:Name="TitleInput" Height="40" MaxLength="240" />
-                <TextBlock Text="Örnek: Checkpoint sonrası Dante repliği iki kez çalıyor"
-                           Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,4,0,14" />
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,17">
+                    <StackPanel>
+                        <TextBlock Text="SORUNU ANLAT" Foreground="#7FA4FF" FontSize="10" FontWeight="Bold" Margin="0,0,0,13" />
+                        <TextBlock Text="Başlık" FontWeight="SemiBold" Margin="0,0,0,6" />
+                        <TextBox x:Name="TitleInput" Height="42" MaxLength="240" />
+                        <TextBlock Text="Örnek: Checkpoint sonrası Dante repliği iki kez çalıyor"
+                                   Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,5,0,14" />
 
-                <Grid Margin="0,0,0,14">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1*" />
-                        <ColumnDefinition Width="1*" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                        <TextBlock Text="Hata Türü" FontWeight="SemiBold" Margin="0,0,0,5" />
-                        <ComboBox x:Name="BugTypePicker" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                        <TextBlock Text="Ne Zaman / Hangi Koşulda?" FontWeight="SemiBold" Margin="0,0,0,5" />
-                        <ComboBox x:Name="TriggerPicker" />
-                    </StackPanel>
-                </Grid>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Hata Türü" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                <ComboBox x:Name="BugTypePicker" Height="40" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Ne Zaman / Hangi Koşulda?" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                <ComboBox x:Name="TriggerPicker" Height="40" />
+                            </StackPanel>
+                        </Grid>
 
-                <TextBlock Text="Açıklama" FontWeight="SemiBold" Margin="0,0,0,5" />
-                <TextBox x:Name="DescriptionInput" Height="125" AcceptsReturn="True" TextWrapping="Wrap"
-                         VerticalScrollBarVisibility="Auto" />
-                <TextBlock Text="Ne olduğunu, ne beklediğinizi ve mümkünse nasıl tekrar oluştuğunu birkaç cümleyle yazın."
-                           Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,4,0,14" />
+                        <TextBlock Text="Açıklama" FontWeight="SemiBold" Margin="0,0,0,6" />
+                        <TextBox x:Name="DescriptionInput" Height="126" AcceptsReturn="True" TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto" />
+                        <TextBlock Text="Ne olduğunu, ne beklediğini ve mümkünse nasıl tekrar oluştuğunu birkaç cümleyle yaz."
+                                   Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,5,0,0" />
+                    </StackPanel>
+                </Border>
 
-                <Grid Margin="0,0,0,14">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1*" />
-                        <ColumnDefinition Width="1*" />
-                        <ColumnDefinition Width="1.4*" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                        <TextBlock Text="Kaç Kez Denediniz?" FontWeight="SemiBold" Margin="0,0,0,5" />
-                        <TextBox x:Name="ReproAttemptsInput" Height="38" Text="1" />
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,17">
+                    <StackPanel>
+                        <TextBlock Text="TEKRAR ÜRETME & ZAMAN KODU" Foreground="#7FA4FF" FontSize="10" FontWeight="Bold" Margin="0,0,0,13" />
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="1.35*"/></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Kaç Kez Denedin?" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                <TextBox x:Name="ReproAttemptsInput" Height="40" Text="1" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,8,0">
+                                <TextBlock Text="Kaçında Oluştu?" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                <TextBox x:Name="ReproHitsInput" Height="40" Text="1" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                                <TextBlock Text="Videodaki Hata Anı" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                <TextBox x:Name="TimestampInput" Height="40" ToolTip="Örnek: 01:43 veya 00:01:43" />
+                                <TextBlock Text="İsteğe bağlı • örn. 01:43" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,4,0,0" />
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Margin="8,0,8,0">
-                        <TextBlock Text="Kaçında Oluştu?" FontWeight="SemiBold" Margin="0,0,0,5" />
-                        <TextBox x:Name="ReproHitsInput" Height="38" Text="1" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                        <TextBlock Text="Videodaki Hata Anı" FontWeight="SemiBold" Margin="0,0,0,5" />
-                        <TextBox x:Name="TimestampInput" Height="38" ToolTip="Örnek: 01:43 veya 00:01:43" />
-                        <TextBlock Text="İsteğe bağlı" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,3,0,0" />
-                    </StackPanel>
-                </Grid>
+                </Border>
 
-                <TextBlock Text="Video / Kanıt" FontWeight="SemiBold" Margin="0,0,0,5" />
-                <Border Background="{StaticResource CardBrush}" CornerRadius="8" Padding="12">
+                <Border Style="{StaticResource CardStyle}">
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock x:Name="VideoFileText" Text="Video seçilmedi" TextWrapping="Wrap" />
-                            <TextBlock Text="MP4, MOV, MKV, WebM, AVI veya görsel ekleyebilirsiniz."
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Border Width="48" Height="48" CornerRadius="12" Background="#262457FF" VerticalAlignment="Center">
+                            <TextBlock Text="▶" Foreground="#A9BFFF" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="13,0" VerticalAlignment="Center">
+                            <TextBlock Text="Video / Görsel Kanıt" FontWeight="Bold" />
+                            <TextBlock x:Name="VideoFileText" Text="Dosya seçilmedi" TextWrapping="Wrap" Margin="0,3,0,0" />
+                            <TextBlock Text="MP4, MOV, MKV, WebM, AVI veya görsel ekleyebilirsin."
                                        Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,3,0,0" />
                         </StackPanel>
-                        <Button Grid.Column="1" Content="Dosya Seç" Click="SelectVideoButton_Click" Margin="12,0,0,0" />
+                        <Button Grid.Column="2" Content="Dosya Seç" Click="SelectVideoButton_Click" VerticalAlignment="Center" />
                     </Grid>
                 </Border>
 
-                <TextBlock x:Name="StatusText" Foreground="#FFCA28" TextWrapping="Wrap" Margin="0,12,0,0" />
+                <TextBlock x:Name="StatusText" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" Margin="3,13,3,0" />
             </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Background="#101216" Padding="20,0">
+        <Border Grid.Row="2" Background="#D3081020" BorderBrush="#1D3765" BorderThickness="0,1,0,0" Padding="22,0">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="Video eklemek zorunlu değildir ancak incelemeyi ciddi şekilde kolaylaştırır."
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Video zorunlu değil; eklendiğinde inceleme ve retest süresi ciddi şekilde kısalır."
                            Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Content="İptal" Click="CancelButton_Click" />
-                    <Button x:Name="SubmitButton" Content="Raporu Gönder" Background="{StaticResource AccentBrush}"
-                            Foreground="White" Click="SubmitButton_Click" />
+                    <Button x:Name="SubmitButton" Content="Raporu Gönder" Style="{StaticResource AccentButton}" Click="SubmitButton_Click" />
                 </StackPanel>
             </Grid>
         </Border>
