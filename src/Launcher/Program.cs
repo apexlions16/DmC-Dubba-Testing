@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
@@ -21,6 +22,12 @@ internal static class Program
     [STAThread]
     public static async Task Main()
     {
+        var turkishCulture = CultureInfo.GetCultureInfo("tr-TR");
+        CultureInfo.DefaultThreadCurrentCulture = turkishCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = turkishCulture;
+        CultureInfo.CurrentCulture = turkishCulture;
+        CultureInfo.CurrentUICulture = turkishCulture;
+
         var root = AppContext.BaseDirectory;
         var settings = LoadSettings(root);
         var versionsDir = Path.Combine(root, "versions");
@@ -52,12 +59,12 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            WriteLog(root, $"Update check failed: {ex}");
+            WriteLog(root, $"Güncelleme kontrolü başarısız oldu: {ex}");
             if (current is null)
             {
                 MessageBox.Show(
-                    "QA Client ilk kurulumu tamamlanamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.",
-                    "Game QA",
+                    "QA istemcisinin ilk kurulumu tamamlanamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.",
+                    "Oyun QA",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 return;
@@ -66,7 +73,11 @@ internal static class Program
 
         if (current is null)
         {
-            MessageBox.Show("Çalıştırılabilir QA Client sürümü bulunamadı.", "Game QA", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(
+                "Çalıştırılabilir bir QA istemcisi sürümü bulunamadı.",
+                "Oyun QA",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
             return;
         }
 
@@ -74,8 +85,8 @@ internal static class Program
         if (!File.Exists(payloadPath))
         {
             MessageBox.Show(
-                $"QA Client dosyası bulunamadı: {settings.PayloadExe}",
-                "Game QA",
+                $"QA istemcisi dosyası bulunamadı: {settings.PayloadExe}",
+                "Oyun QA",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             return;
@@ -118,14 +129,14 @@ internal static class Program
         var actualSha = await ComputeSha256Async(zipPath);
         if (!actualSha.Equals(release.Sha256, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidDataException("Downloaded update SHA-256 does not match release manifest.");
+            throw new InvalidDataException("İndirilen güncellemenin SHA-256 özeti yayın manifestiyle eşleşmiyor.");
         }
 
         ZipFile.ExtractToDirectory(zipPath, extractPath, overwriteFiles: true);
         var expectedExe = Path.Combine(extractPath, settings.PayloadExe);
         if (!File.Exists(expectedExe))
         {
-            throw new InvalidDataException($"Update does not contain {settings.PayloadExe}.");
+            throw new InvalidDataException($"Güncelleme paketi {settings.PayloadExe} dosyasını içermiyor.");
         }
 
         if (Directory.Exists(finalPath))
