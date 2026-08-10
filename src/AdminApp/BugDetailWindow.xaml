@@ -1,0 +1,91 @@
+<Window x:Class="DmC.Qa.Admin.BugDetailWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Hata Detayı" Height="900" Width="1260" MinHeight="760" MinWidth="1080"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource SurfaceBrush}" Foreground="White">
+    <Grid Margin="18">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.15*"/>
+            <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.ColumnSpan="2" Margin="0,0,0,14">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock x:Name="BugKeyText" FontSize="14" Foreground="{StaticResource MutedBrush}"/>
+                <TextBlock x:Name="TitleText" FontSize="25" FontWeight="Bold" TextWrapping="Wrap"/>
+                <TextBlock x:Name="MetaText" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+            </StackPanel>
+            <Button x:Name="RetestButton" Grid.Column="1" Content="🔁 Yeniden Test İste" VerticalAlignment="Center" Background="{StaticResource AccentBrush}" Foreground="White" Click="RetestButton_Click"/>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,10,0">
+            <StackPanel>
+                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="TESTER RAPORU" FontWeight="Bold"/>
+                        <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" Margin="0,10,0,10"/>
+                        <TextBlock x:Name="ReproText" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock x:Name="TimestampText" Foreground="#FFCA28" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="YÖNETİCİ DEĞERLENDİRMESİ" FontWeight="Bold"/>
+                        <TextBlock Text="Durum" Foreground="{StaticResource MutedBrush}" Margin="0,12,0,4"/>
+                        <ComboBox x:Name="StatusPicker" Height="34"/>
+                        <TextBlock Text="Kök Neden" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,4"/>
+                        <ComboBox x:Name="RootCausePicker" Height="34" IsEditable="True"/>
+                        <TextBlock Text="Yönetici Notu" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,4"/>
+                        <TextBox x:Name="AdminNoteInput" Height="90" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                        <Button x:Name="SaveStatusButton" Content="Değişiklikleri Kaydet" HorizontalAlignment="Left" Background="{StaticResource AccentBrush}" Foreground="White" Margin="0,12,0,0" Click="SaveStatusButton_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="HAREKET GEÇMİŞİ" FontWeight="Bold" Margin="0,0,0,8"/>
+                        <DataGrid x:Name="EventsGrid" Height="260" AutoGenerateColumns="False" IsReadOnly="True" Background="Transparent" Foreground="White">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Tarih" Binding="{Binding Date}" Width="150"/>
+                                <DataGridTextColumn Header="Kişi" Binding="{Binding Actor}" Width="120"/>
+                                <DataGridTextColumn Header="Olay" Binding="{Binding Event}" Width="150"/>
+                                <DataGridTextColumn Header="Durum" Binding="{Binding Status}" Width="160"/>
+                                <DataGridTextColumn Header="Not" Binding="{Binding Note}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1" Grid.Column="1">
+            <Grid.RowDefinitions><RowDefinition Height="1.4*"/><RowDefinition Height="1*"/></Grid.RowDefinitions>
+            <Border Background="#08090C" CornerRadius="9" Padding="10" Margin="0,0,0,10">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <MediaElement x:Name="VideoPlayer" LoadedBehavior="Manual" UnloadedBehavior="Close" Stretch="Uniform"/>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="▶ Oynat" Click="Play_Click"/>
+                        <Button Content="⏸ Duraklat" Click="Pause_Click"/>
+                        <Button Content="⏹ Durdur" Click="Stop_Click"/>
+                        <Button Content="⏱ Hata Anına Git" Click="SeekTimestamp_Click"/>
+                        <TextBlock x:Name="VideoStatusText" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Grid.Row="1" Background="{StaticResource CardBrush}" CornerRadius="9" Padding="14">
+                <StackPanel>
+                    <TextBlock Text="VİDEO / KANITLAR" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <ListBox x:Name="EvidenceList" DisplayMemberPath="Filename" Height="160" Background="#111318" Foreground="White" MouseDoubleClick="EvidenceList_MouseDoubleClick"/>
+                    <TextBlock Text="Dosyaya çift tıklayın: MP4 ise uygulama içinde oynatılır; diğer biçimler varsayılan uygulamada açılır." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,7,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
