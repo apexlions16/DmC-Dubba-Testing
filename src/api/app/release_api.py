@@ -19,8 +19,8 @@ storage = HfBucketStorage()
 
 @router.get("/latest")
 def latest_release(
+    db: DB,
     channel: str = Query(default="stable", pattern="^(stable|beta)$"),
-    db: DB = None,
 ) -> dict:
     release = db.scalar(
         select(models.ClientRelease)
@@ -46,8 +46,8 @@ def latest_release(
 
 @router.get("")
 def release_history(
+    db: DB,
     channel: str = Query(default="stable", pattern="^(stable|beta)$"),
-    db: DB = None,
 ) -> list[dict]:
     releases = db.scalars(
         select(models.ClientRelease)
