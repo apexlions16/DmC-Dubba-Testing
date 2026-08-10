@@ -157,7 +157,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Son Raporlarım" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="+ Hata Raporla" Background="{StaticResource AccentBrush}" Foreground="White" />
+                        <Button x:Name="ReportBugButton" Grid.Column="1" Content="+ Hata Raporla" Background="{StaticResource AccentBrush}" Foreground="White" Click="ReportBugButton_Click" />
                     </Grid>
 
                     <DataGrid x:Name="MyReportsGrid" Margin="0,10,0,20" Height="230"
