@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>DmC-Dub-QA</AssemblyName>
+    <RootNamespace>DmC.Qa.Launcher</RootNamespace>
+  </PropertyGroup>
+</Project>
