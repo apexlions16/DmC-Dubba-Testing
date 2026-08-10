@@ -50,6 +50,14 @@ public sealed record CurrentUserSummary(
     string DisplayName,
     string Role);
 
+public sealed record AdminUserSummary(
+    string Id,
+    string DisplayName,
+    string Role,
+    bool Enabled,
+    int ActiveDevices,
+    DateTimeOffset CreatedAt);
+
 public sealed record ProjectSummary(
     string Id,
     string Key,
