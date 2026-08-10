@@ -24,7 +24,7 @@
                         </Grid>
                     </Border>
                     <TextBlock Text="DmC Türkçe Dublaj QA" FontSize="18" FontWeight="Bold" Margin="5,13,5,0" />
-                    <TextBlock Text="TEST İSTEMCİSİ" Foreground="{StaticResource AccentBrightBrush}" FontSize="10" FontWeight="SemiBold" CharacterSpacing="170" Margin="5,3,5,14" />
+                    <TextBlock Text="TEST İSTEMCİSİ" Foreground="{StaticResource AccentBrightBrush}" FontSize="10" FontWeight="SemiBold" Margin="5,3,5,14" />
 
                     <Button x:Name="PanelNavButton" Style="{StaticResource NavButton}" Content="⌂   Panel" Click="PanelNavButton_Click" />
                     <Button Style="{StaticResource NavButton}" Content="✓   Görevim" Click="TaskNavButton_Click" />
@@ -64,7 +64,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="QA ÇALIŞMA ALANI" Foreground="#739AFF" FontSize="10" FontWeight="Bold" CharacterSpacing="120" />
+                        <TextBlock Text="QA ÇALIŞMA ALANI" Foreground="#739AFF" FontSize="10" FontWeight="Bold" />
                         <TextBlock x:Name="ProjectTitle" Text="Proje seçiliyor..." FontSize="25" FontWeight="Bold" Margin="0,2,0,0" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
