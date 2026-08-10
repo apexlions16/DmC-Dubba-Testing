@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -51,7 +52,6 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            // Network/update failure must not block QA if a known-good payload already exists.
             WriteLog(root, $"Update check failed: {ex}");
             if (current is null)
             {
@@ -178,7 +178,6 @@ internal static class Program
         }
         catch
         {
-            // Logging must never stop launch fallback.
         }
     }
 
