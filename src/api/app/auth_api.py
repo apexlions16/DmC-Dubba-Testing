@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
 
 from . import models
 from .auth import AdminUser, DB, find_user_by_display_name, issue_device_credential
@@ -18,6 +17,7 @@ class DeviceEnrollmentRequest(BaseModel):
     display_name: str = Field(min_length=2, max_length=120)
     installation_id: str = Field(min_length=16, max_length=200)
     device_name: str | None = Field(default=None, max_length=160)
+    client_kind: str = Field(default="tester", pattern="^(tester|admin)$")
 
 
 class DeviceEnrollmentResponse(BaseModel):
@@ -51,12 +51,21 @@ def enroll_device(payload: DeviceEnrollmentRequest, db: DB) -> DeviceEnrollmentR
     if user is None:
         raise HTTPException(
             status_code=404,
-            detail="Bu adla kayıtlı bir test ekibi üyesi bulunamadı. Lütfen yöneticinizle iletişime geçin.",
+            detail="Bu adla kayıtlı bir kullanıcı bulunamadı. Lütfen yöneticinizle iletişime geçin.",
         )
     if not user.enabled:
         raise HTTPException(
             status_code=403,
             detail="Bu kullanıcı hesabı devre dışı bırakılmış. Lütfen yöneticinizle iletişime geçin.",
+        )
+    if payload.client_kind == "admin" and user.role not in {
+        models.UserRole.DEVELOPER,
+        models.UserRole.ADMIN,
+        models.UserRole.SUPER_ADMIN,
+    }:
+        raise HTTPException(
+            status_code=403,
+            detail="Bu kullanıcı Yönetim Merkezi uygulamasını kullanma yetkisine sahip değil.",
         )
 
     fingerprint_hash = _installation_hash(payload.installation_id)
@@ -109,7 +118,7 @@ def enroll_device(payload: DeviceEnrollmentRequest, db: DB) -> DeviceEnrollmentR
             action="device_enrolled",
             entity_type="device",
             entity_id=device.id,
-            payload={"device_name": payload.device_name},
+            payload={"device_name": payload.device_name, "client_kind": payload.client_kind},
         )
     )
     db.commit()
