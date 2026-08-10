@@ -9,6 +9,8 @@ public partial class MainWindow
     protected override void OnContentRendered(EventArgs e)
     {
         base.OnContentRendered(e);
+        _buildDownloadButton ??= BuildDownloadButton;
+        UpdateActionAvailability();
         UiMotion.FadeIn(DashboardContent, 18);
         ShowPendingReleaseNotes();
     }
