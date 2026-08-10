@@ -21,6 +21,9 @@ public partial class MainWindow : Window
     private readonly QaApiClient _api;
     private ClientState _state = new();
     private bool _hasAuthenticatedCredential;
+    private ProjectSummary? _currentProject;
+    private TaskSummary? _currentTask;
+    private BuildSummary? _currentBuild;
 
     public MainWindow()
     {
@@ -38,6 +41,7 @@ public partial class MainWindow : Window
             Timeout = TimeSpan.FromMinutes(5)
         });
 
+        ReportBugButton.IsEnabled = false;
         LoadLocalProfile();
         Loaded += MainWindow_Loaded;
     }
@@ -120,6 +124,7 @@ public partial class MainWindow : Window
         {
             _api.ClearAuthentication();
             _hasAuthenticatedCredential = false;
+            ReportBugButton.IsEnabled = false;
             EnrollmentOverlay.Visibility = Visibility.Visible;
             EnrollmentError.Text = ex.Message;
             SetConnectionState("● Oturum doğrulanamadı", "#EF5350");
@@ -140,13 +145,17 @@ public partial class MainWindow : Window
         var tasks = await _api.GetMyTasksAsync();
 
         ProjectsList.Items.Clear();
-        foreach (var project in projects)
+        foreach (var projectItem in projects)
         {
-            ProjectsList.Items.Add(project.Name);
+            ProjectsList.Items.Add(projectItem.Name);
         }
 
         if (projects.Count == 0)
         {
+            _currentProject = null;
+            _currentTask = null;
+            _currentBuild = null;
+            ReportBugButton.IsEnabled = false;
             ProjectTitle.Text = "Henüz bir projeye atanmadınız";
             TaskTitle.Text = "Aktif ortak görev yok";
             TaskDeadline.Text = "—";
@@ -158,10 +167,13 @@ public partial class MainWindow : Window
         }
 
         var project = projects[0];
+        _currentProject = project;
         ProjectTitle.Text = project.Name;
         ProjectsList.SelectedIndex = 0;
+        ReportBugButton.IsEnabled = true;
 
         var task = tasks.FirstOrDefault(item => item.ProjectId == project.Id);
+        _currentTask = task;
         if (task is null)
         {
             TaskTitle.Text = "Aktif ortak görev yok";
@@ -174,6 +186,7 @@ public partial class MainWindow : Window
         }
 
         var build = await _api.GetCurrentBuildAsync(project.Id);
+        _currentBuild = build;
         if (build is null)
         {
             BuildVersion.Text = "—";
@@ -193,6 +206,36 @@ public partial class MainWindow : Window
         if (progress is not null)
         {
             ResolutionPercent.Text = $"%{progress.ResolutionPercentage:0.#} çözüldü";
+        }
+    }
+
+    private async void ReportBugButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentProject is null)
+        {
+            MessageBox.Show(
+                "Hata raporu gönderebilmek için önce bir projeye atanmış olmanız gerekiyor.",
+                "Proje Bulunamadı",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var dialog = new BugReportWindow(_api, _currentProject, _currentTask, _currentBuild)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                await LoadDashboardAsync();
+            }
+            catch (Exception)
+            {
+                SetConnectionState("● Rapor gönderildi, özet yenilenemedi", "#F9A825");
+            }
         }
     }
 
@@ -286,8 +329,7 @@ public partial class MainWindow : Window
             var clearBytes = ProtectedData.Unprotect(encrypted, CredentialEntropy, DataProtectionScope.CurrentUser);
             return Encoding.UTF8.GetString(clearBytes);
         }
-        catch (Exception) when (
-            protectedCredential.Length > 0)
+        catch
         {
             return null;
         }
