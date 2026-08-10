@@ -185,11 +185,14 @@ def create_user(payload: UserCreateRequest, db: DB, admin: AdminUser) -> dict:
         )
     )
     db.commit()
+    db.refresh(user)
     return {
         "id": user.id,
         "display_name": user.display_name,
         "role": user.role.value,
         "enabled": user.enabled,
+        "active_devices": 0,
+        "created_at": user.created_at,
     }
 
 
