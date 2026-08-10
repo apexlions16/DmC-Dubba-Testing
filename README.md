@@ -1,145 +1,171 @@
 # Oyun QA Platformu
 
-> İlk proje: **DmC: Devil May Cry Türkçe Dublaj QA**
+> İlk gerçek kullanım alanı: **DmC: Devil May Cry Türkçe Dublaj QA**
 
-Bu depo, oyun, mod ve özellikle seslendirme/dublaj projelerinin test süreçlerini küçük ve orta ölçekli ekiplerle düzenli, izlenebilir ve istatistiksel biçimde yönetmek için geliştirilen çoklu proje destekli bir **Game QA Management Platform** içerir.
+Bu depo; oyun, mod, dublaj, yerelleştirme ve benzeri projelerin test süreçlerini küçük ve orta ölçekli ekiplerle düzenli, güvenli, ölçülebilir ve izlenebilir biçimde yönetmek için geliştirilen çoklu proje destekli bir **Oyun Kalite Güvence Yönetim Platformu** içerir.
 
-Platformun ilk gerçek kullanım alanı **DmC: Devil May Cry Türkçe Dublaj Projesi** olacaktır. Bununla birlikte mimari hiçbir noktada tek bir oyuna veya yalnızca dublaj testine sabitlenmemiştir. Aynı sistem üzerinde eş zamanlı olarak birden fazla oyun, mod veya içerik projesi yürütülebilir.
+Platformun ilk kullanım alanı **DmC: Devil May Cry Türkçe Dublaj Projesi** olacaktır. Buna rağmen mimari tek bir oyuna, yalnızca dublaja veya yalnızca bir test ekibine sabitlenmemiştir. Aynı sistem üzerinde aynı anda birden fazla oyun, mod veya farklı QA projesi yürütülebilir.
+
+Bu README yalnızca geliştiriciler için teknik kurulum notu değildir. Uygulamanın neden var olduğunu, testerın ne göreceğini, yöneticinin ne yapacağını, buildlerin nasıl dağıtılacağını, hataların nasıl yaşayacağını, yeniden testlerin nasıl yönetileceğini, istatistiklerin ne anlama geldiğini ve bir proje tamamlandığında verilerin nasıl ele alınacağını açıklayan ana proje kılavuzudur.
 
 ---
 
 ## İçindekiler
 
 - [1. Projenin amacı](#1-projenin-amacı)
-- [2. Temel tasarım ilkeleri](#2-temel-tasarım-ilkeleri)
-- [3. Sistemin genel mimarisi](#3-sistemin-genel-mimarisi)
-- [4. Uygulamalar ve bileşenler](#4-uygulamalar-ve-bileşenler)
+- [2. Tasarım ilkeleri](#2-tasarım-ilkeleri)
+- [3. Genel mimari](#3-genel-mimari)
+- [4. Ana bileşenler](#4-ana-bileşenler)
 - [5. Kullanıcı rolleri](#5-kullanıcı-rolleri)
-- [6. Tester uygulaması nasıl çalışır?](#6-tester-uygulaması-nasıl-çalışır)
-- [7. Admin ve Developer uygulaması nasıl çalışır?](#7-admin-ve-developer-uygulaması-nasıl-çalışır)
-- [8. Proje yapısı](#8-proje-yapısı)
-- [9. Ortak görev sistemi](#9-ortak-görev-sistemi)
-- [10. Build yönetimi](#10-build-yönetimi)
-- [11. Hata raporlama sistemi](#11-hata-raporlama-sistemi)
-- [12. Hata yaşam döngüsü](#12-hata-yaşam-döngüsü)
-- [13. Retest sistemi](#13-retest-sistemi)
-- [14. Bildirim ve duyuru sistemi](#14-bildirim-ve-duyuru-sistemi)
-- [15. İstatistik ve analiz sistemi](#15-istatistik-ve-analiz-sistemi)
-- [16. Tester istatistikleri](#16-tester-istatistikleri)
-- [17. Hugging Face depolama yapısı](#17-hugging-face-depolama-yapısı)
-- [18. Uygulama güncelleme sistemi](#18-uygulama-güncelleme-sistemi)
-- [19. Çoklu proje desteği](#19-çoklu-proje-desteği)
-- [20. Proje kapatma, arşivleme ve kalıcı silme](#20-proje-kapatma-arşivleme-ve-kalıcı-silme)
-- [21. Güvenlik modeli](#21-güvenlik-modeli)
-- [22. Veri modeli ve audit geçmişi](#22-veri-modeli-ve-audit-geçmişi)
-- [23. Türkçe dil desteği](#23-türkçe-dil-desteği)
-- [24. Kaynak kod yapısı](#24-kaynak-kod-yapısı)
-- [25. Yerel geliştirme](#25-yerel-geliştirme)
-- [26. CI / derleme doğrulaması](#26-ci--derleme-doğrulaması)
-- [27. Mevcut geliştirme durumu](#27-mevcut-geliştirme-durumu)
-- [28. Yakın dönem geliştirme planı](#28-yakın-dönem-geliştirme-planı)
-- [29. Terimler](#29-terimler)
+- [6. Tester uygulaması](#6-tester-uygulaması)
+- [7. Yönetim Merkezi](#7-yönetim-merkezi)
+- [8. Güvenli cihaz eşleştirmesi](#8-güvenli-cihaz-eşleştirmesi)
+- [9. Proje yapısı ve çoklu proje desteği](#9-proje-yapısı-ve-çoklu-proje-desteği)
+- [10. Ortak görev sistemi](#10-ortak-görev-sistemi)
+- [11. Son tarih sistemi](#11-son-tarih-sistemi)
+- [12. Test sürümü / build yönetimi](#12-test-sürümü--build-yönetimi)
+- [13. Build indirme ve kurulum açıklamaları](#13-build-indirme-ve-kurulum-açıklamaları)
+- [14. Hata raporlama](#14-hata-raporlama)
+- [15. Video ve kanıt dosyaları](#15-video-ve-kanıt-dosyaları)
+- [16. Hata yaşam döngüsü](#16-hata-yaşam-döngüsü)
+- [17. Yeniden test sistemi](#17-yeniden-test-sistemi)
+- [18. Bildirim ve duyurular](#18-bildirim-ve-duyurular)
+- [19. İstatistik ve analiz yaklaşımı](#19-istatistik-ve-analiz-yaklaşımı)
+- [20. Tester istatistikleri](#20-tester-istatistikleri)
+- [21. Build istatistikleri](#21-build-istatistikleri)
+- [22. Hugging Face depolama düzeni](#22-hugging-face-depolama-düzeni)
+- [23. Uygulama güncelleme sistemi](#23-uygulama-güncelleme-sistemi)
+- [24. Türkçe dil desteği](#24-türkçe-dil-desteği)
+- [25. Güvenlik modeli](#25-güvenlik-modeli)
+- [26. Veritabanı ve olay geçmişi](#26-veritabanı-ve-olay-geçmişi)
+- [27. Proje kapatma, arşivleme ve kalıcı silme](#27-proje-kapatma-arşivleme-ve-kalıcı-silme)
+- [28. Kaynak kod yapısı](#28-kaynak-kod-yapısı)
+- [29. Yerel geliştirme](#29-yerel-geliştirme)
+- [30. CI ve derleme doğrulaması](#30-ci-ve-derleme-doğrulaması)
+- [31. Mevcut geliştirme durumu](#31-mevcut-geliştirme-durumu)
+- [32. Yakın dönem geliştirme planı](#32-yakın-dönem-geliştirme-planı)
+- [33. Terimler sözlüğü](#33-terimler-sözlüğü)
 
 ---
 
 # 1. Projenin amacı
 
-Bu projenin temel amacı testerların yalnızca video yüklediği basit bir dosya paylaşım uygulaması oluşturmak değildir.
+Bu projenin amacı yalnızca testerların video yükleyebileceği bir masaüstü aracı yapmak değildir.
 
-Hedefimiz, bir oyun veya modun test sürecinin başlangıcından final sürümüne kadar aşağıdaki sorulara her zaman net cevap verebilen merkezi bir sistem oluşturmaktır:
+Hedef; test sürecinin tamamını baştan sona izleyebilen merkezi bir QA sistemi oluşturmaktır.
 
-- Hangi proje şu anda test ediliyor?
-- Hangi build en güncel test build'i?
-- Hangi tester hangi göreve atanmış durumda?
-- Bir görev birden fazla tester tarafından ortak mı yürütülüyor?
+Sistem aşağıdaki soruların cevaplarını mümkün olduğunca tek bir yerden verebilmelidir:
+
+- Şu anda hangi projeler aktif?
+- Her projede hangi test sürümü güncel?
+- Güncel test sürümünü kim yükledi?
+- Hangi sürüm ne zaman yayınlandı?
+- Testerlar hangi sürümü indirdi?
+- Hangi tester hangi göreve atanmış?
+- Aynı görev üzerinde kimler ortak çalışıyor?
+- Görevin son tarihi ne?
 - Hangi hata hangi build üzerinde bulundu?
-- Hata ilk olarak kim tarafından raporlandı?
-- Hatanın videosu nerede?
 - Hata hangi Mission, Chapter veya bölümde oluştu?
-- Hata nasıl tekrar üretilebiliyor?
 - Hata hangi koşul altında ortaya çıktı?
-- Admin hatayı ne zaman incelemeye aldı?
-- Developer hangi build içinde bu hatayı düzeltmeyi hedefledi?
-- Retest kimlerden istendi?
-- Retest hangi build üzerinde yapıldı?
-- İlk retest başarılı mı oldu?
-- Birden fazla tester aynı retestte farklı sonuç verdi mi?
-- Hata kaç kez tekrar açıldı?
-- Hangi hata türlerinde daha fazla sorun çıkıyor?
-- Hangi Mission daha problemli?
-- Hangi build ile açık hata sayısı azaldı veya arttı?
-- Ortalama çözüm süresi nedir?
-- Hangi build ne zaman yüklendi, yayınlandı ve arşivlendi?
-- Testerların geri bildirimleri ne kadar düzenli ve kullanılabilir?
-- Proje tamamlandığında bütün dosyalar güvenli şekilde arşivlenebilir veya silinebilir mi?
+- Hata ne kadar tekrar üretilebilir?
+- Hatanın video kaydı var mı?
+- Videoda hata hangi saniyede oluşuyor?
+- İlk raporu kim gönderdi?
+- Admin raporu ne zaman inceledi?
+- Hata ne zaman çalışmaya alındı?
+- Developer hangi buildde düzeltmeyi hedefledi?
+- Hangi testerlardan yeniden test istendi?
+- Yeniden test hangi buildde yapıldı?
+- İlk yeniden test başarılı mıydı?
+- Birden fazla tester aynı düzeltme hakkında farklı sonuç verdi mi?
+- Hangi tür problemler daha sık görülüyor?
+- Hangi Mission daha fazla sorun çıkarıyor?
+- Hangi build ile açık hata sayısı azaldı?
+- Hangi build regression oluşturdu?
+- Bir hatanın ortalama çözülme süresi ne?
+- Testerların geri bildirimleri ne kadar kullanılabilir?
+- Proje bitince dosyalar nasıl arşivlenecek?
+- Proje tamamen silinmek istenirse yanlışlıkla silinmesi nasıl önlenecek?
 
-Platformun bütün tasarımı bu izlenebilirlik hedefinin etrafında kurulmaktadır.
+Bu soruların cevabını sonradan tahmin etmek yerine olay gerçekleştiği anda sistematik biçimde kaydetmek projenin ana felsefesidir.
 
 ---
 
-# 2. Temel tasarım ilkeleri
+# 2. Tasarım ilkeleri
 
-## 2.1 Tester için mümkün olan en kolay deneyim
+## 2.1 Tester için aşırı basit kullanım
 
 Testerların ortalama bilgisayar kullanıcısı olduğu varsayılır.
 
-Testerın:
+Testerın şunları bilmesi beklenmez:
 
-- Hugging Face hesabı açması,
-- token oluşturması,
-- terminal kullanması,
-- klasör yapısı öğrenmesi,
-- GitHub kullanması,
-- dosya ismi standardını ezberlemesi,
-- API adresi bilmesi,
-- teknik hata sınıflandırması yapması
+- Hugging Face nedir?
+- GitHub nedir?
+- API nedir?
+- token nasıl oluşturulur?
+- bucket nasıl kullanılır?
+- dosya hangi klasöre gönderilmeli?
+- hata ID'si nasıl oluşturulmalı?
+- JSON nedir?
+- terminal nasıl kullanılır?
 
-beklenmez.
-
-İdeal tester deneyimi şu kadar basit olmalıdır:
+Testerın ideal akışı şudur:
 
 1. Uygulamayı aç.
 2. İlk kullanımda adını yaz.
-3. Sana atanmış projeyi/görevi gör.
-4. Uygulama içinden güncel build'i indir.
-5. Kurulum açıklamasını oku.
-6. Testi yap.
-7. Sorun bulursan video seç.
-8. Hata türünü seç.
-9. Kısa açıklama yaz.
-10. **Raporu Gönder** butonuna bas.
+3. Kendisine atanmış projeyi gör.
+4. Ortak görev ve son tarihi gör.
+5. En güncel test sürümünü gör.
+6. Uygulama içinden sürümü indir.
+7. Kurulum açıklamasını oku.
+8. Testi yap.
+9. Sorun görürse **Hata Raporla** butonuna bas.
+10. Hata türünü seç.
+11. Açıklamasını yaz.
+12. İsterse video ekle.
+13. Gönder.
 
-Geri kalan bütün teknik işlemler uygulama ve backend tarafından yapılmalıdır.
+Geride kalan teknik işlemler istemci ve backend tarafından yapılır.
 
-## 2.2 Ölçemediğimiz şeyi yüzde olarak göstermemek
+## 2.2 Ölçemediğimiz şeye sahte yüzde vermemek
 
-Platformda "Mission %70 test edildi" gibi sahte kesinlik üreten bir metrik kullanılmaz.
+Bir Mission için:
 
-Bir oyunun gerçekten yüzde kaç test edildiğini yalnızca bulunan hata sayısından çıkarmak mümkün değildir. Yeni bir hata her an bulunabilir.
+> Mission %72 test edildi.
 
-Bu nedenle progress bar yalnızca **bilinen ve geçerli sorunların çözüm yaşam döngüsünü** gösterir.
+şeklinde bir metrik üretmek güvenilir değildir.
 
-Örneğin:
+Bir tester bir bölümü sonuna kadar oynamış olsa bile daha önce denenmemiş bir checkpoint, hızlı dövüş, ara sahne atlama veya sıra dışı oyuncu davranışı yeni bir hata oluşturabilir.
 
-- 40 geçerli sorun,
-- 20 çözüldü,
-- 8 üzerinde çalışılıyor,
-- 5 retest bekliyor,
-- 7 yeni
+Bu nedenle platformdaki çözüm çubuğu yalnızca **bilinen ve geçerli sorunların yaşam döngüsünü** gösterir.
 
-ise sistem "test %50 tamamlandı" demez.
+Örnek:
 
-Sistem:
+```text
+Bilinen geçerli sorun: 40
+Çözüldü:             20
+Üzerinde çalışılıyor: 8
+Yeniden test:          5
+Yeni:                  7
+```
+
+Sistem burada:
 
 > **Bilinen sorunların %50'si çözüldü.**
 
 ifadesini kullanır.
 
-## 2.3 Önemli durum değişiklikleri silinmez
+Sistem:
 
-Bir hata bugün `Çözüldü` durumundaysa yalnızca son durumu saklamak yeterli değildir.
+> Test %50 tamamlandı.
 
-Örneğin gerçek geçmiş:
+ifadesini kullanmaz.
+
+## 2.3 Önemli değişiklikler üzerine yazılmaz
+
+Bir hata bugün `Çözüldü` durumundaysa yalnızca bug tablosunda son durumun tutulması yeterli değildir.
+
+Aşağıdaki geçmiş korunmalıdır:
 
 ```text
 Yeni
@@ -148,363 +174,439 @@ Yeni
 ↓
 Üzerinde Çalışılıyor
 ↓
-Retest Bekliyor
+Yeniden Test Bekliyor
 ↓
-Retest Başarısız
+Yeniden Test Başarısız
 ↓
 Üzerinde Çalışılıyor
 ↓
-Retest Bekliyor
+Yeniden Test Bekliyor
 ↓
-Retest Başarılı
+Yeniden Test Başarılı
 ↓
 Çözüldü
 ```
 
-şeklindeyse bütün bu geçişler korunur.
+Bu sayede gelecekte:
 
-Bu sayede geçmiş verilerden güvenilir istatistikler üretilebilir.
+- kaç bug ilk yeniden testte başarısız oldu,
+- hangi hata türü en uzun sürüyor,
+- hangi buildde regression arttı,
+- bir bug kaç kere yeniden açıldı
 
-## 2.4 Hassas anahtarlar masaüstü uygulamasına gömülmez
+gibi sorular gerçek geçmişten hesaplanabilir.
 
-Hugging Face write token gibi kritik bilgiler Tester veya Admin EXE içine yazılmaz.
+## 2.4 Hassas anahtarlar masaüstü uygulamasında tutulmaz
 
-Masaüstü uygulamaları backend ile konuşur. Hugging Face erişimi backend tarafında tutulur.
+Hugging Face yazma yetkisine sahip ana token Tester veya Yönetim Merkezi EXE içine gömülmez.
 
-## 2.5 Runtime verisi GitHub JSON dosyalarında tutulmaz
+İstemci yalnız QA backend ile konuşur.
 
-GitHub kaynak kod, dokümantasyon, CI, release pipeline ve sürümleme içindir.
+Backend Hugging Face ile konuşur.
 
-Canlı QA verileri GitHub commit geçmişine yazılmaz.
+## 2.5 GitHub çalışma veritabanı değildir
+
+GitHub:
+
+- kaynak kod,
+- CI,
+- pull request,
+- release pipeline,
+- dokümantasyon
+
+içindir.
+
+Canlı QA durumu GitHub JSON commitleri olarak saklanmaz.
 
 Örneğin:
 
-- Ahmet retest yaptı,
-- bir bug `In Progress` oldu,
-- yeni görev oluşturuldu,
-- deadline değişti,
-- build indirildi
+- Ahmet yeniden test yaptı,
+- bir hata çalışma kuyruğuna döndü,
+- yeni build yayınlandı,
+- kullanıcı cihaz değiştirdi,
+- görev son tarihi değişti
 
-gibi olaylar veritabanında saklanır.
+gibi olayların ana kaynağı veritabanıdır.
 
 ---
 
-# 3. Sistemin genel mimarisi
+# 3. Genel mimari
 
 ```text
-                        ┌────────────────────────────┐
-                        │     Admin / Developer      │
-                        │       Control Center       │
-                        └─────────────┬──────────────┘
-                                      │
-                                      │ HTTPS / API
-                                      ▼
-                         ┌─────────────────────────┐
-                         │      Game QA API        │
-                         │        FastAPI          │
-                         └──────────┬──────────────┘
-                                    │
-                 ┌──────────────────┼───────────────────┐
-                 │                  │                   │
-                 ▼                  ▼                   ▼
-           PostgreSQL          Hugging Face        Bildirim /
-           QA metadata         Storage Bucket      Release verisi
-                 ▲                  ▲
-                 │                  │
-                 └────────┬─────────┘
-                          │
-                          │ HTTPS / API
-                          ▼
-                    ┌──────────────┐
-                    │ Tester Client│
-                    └──────┬───────┘
-                           │
-                           ▼
-                    ┌──────────────┐
-                    │ Sabit Launcher│
-                    │ Auto Update   │
-                    └──────────────┘
+                    ┌─────────────────────────────┐
+                    │ Yönetim Merkezi             │
+                    │ Admin / Developer Windows   │
+                    └──────────────┬──────────────┘
+                                   │
+                                   │ HTTPS / API
+                                   ▼
+                     ┌─────────────────────────┐
+                     │ Oyun QA Backend         │
+                     │ FastAPI                 │
+                     └───────────┬─────────────┘
+                                 │
+              ┌──────────────────┼──────────────────┐
+              │                  │                  │
+              ▼                  ▼                  ▼
+         PostgreSQL        Hugging Face        Bildirim /
+         QA metadata       Storage Bucket      Release verisi
+              ▲                  ▲
+              │                  │
+              └────────┬─────────┘
+                       │
+                       │ HTTPS / API
+                       ▼
+                ┌───────────────┐
+                │ Tester Client │
+                │ Windows WPF   │
+                └───────┬───────┘
+                        │
+                        ▼
+                ┌───────────────┐
+                │ Sabit Launcher│
+                │ Otomatik Update│
+                └───────────────┘
 ```
 
-Temel ayrım şöyledir:
+Ana görev ayrımı:
 
-- **Veritabanı:** QA metadata ve yaşam döngüsü.
-- **Hugging Face Storage Bucket:** büyük dosyalar, videolar ve build paketleri.
-- **GitHub:** kaynak kod, CI ve uygulama release altyapısı.
-- **Tester Client:** tester deneyimi.
-- **Admin Client:** proje ve QA yönetimi.
-- **Launcher:** istemci güncellemeleri.
+| Katman | Görev |
+|---|---|
+| PostgreSQL | Kullanıcılar, görevler, buglar, yeniden testler, durumlar, olay geçmişi |
+| Hugging Face Storage Bucket | Büyük video/görsel/build dosyaları |
+| GitHub | Kaynak kod, CI, PR, release otomasyonu |
+| Tester Client | Tester için sade kullanıcı deneyimi |
+| Yönetim Merkezi | Admin ve developer operasyonları |
+| Launcher | İstemci güncelleme ve sürüm doğrulama |
 
 ---
 
-# 4. Uygulamalar ve bileşenler
+# 4. Ana bileşenler
 
-## Tester Client
+## 4.1 Tester Client
 
-Testerların kullandığı sade Windows masaüstü uygulamasıdır.
+Testerların kullandığı Windows uygulamasıdır.
 
-Ana görevleri:
+Şu anki temel çalışan akışta:
 
-- kullanıcıyı tanımak,
-- atanmış projeleri göstermek,
-- ortak görevleri göstermek,
-- deadline takip etmek,
-- en güncel test build'ini göstermek,
-- build indirmek,
-- kurulum açıklamasını göstermek,
-- bug raporu göndermek,
-- video/evidence yüklemek,
-- kendisine atanmış retestleri göstermek,
-- retest sonucu göndermek,
-- bildirim ve zorunlu duyuruları göstermek,
-- kendi gönderdiği raporların durumunu göstermek,
-- proje genelindeki bilinen sorunların durumunu göstermek.
+- kullanıcı adıyla ilk cihaz eşleştirmesi,
+- güvenli oturum saklama,
+- atanmış projeleri alma,
+- aktif görevi gösterme,
+- son tarihi gösterme,
+- güncel test sürümünü gösterme,
+- bilinen sorun çözüm oranını gösterme,
+- bekleyen yeniden test sayısını gösterme,
+- hata raporu oluşturma,
+- video/görsel kanıt yükleme,
+- testerın yeniden test sonucunu gönderme,
+- yeniden teste video ekleme
 
-## Admin / Developer Control Center
+bulunmaktadır.
 
-Admin ve developerların kullandığı gelişmiş Windows uygulamasıdır.
+İlerleyen aşamalarda bildirim, build indirme ve daha zengin ortak görev ekranları aynı istemciye bağlanacaktır.
 
-Rol bazlı ekran gösterir.
+## 4.2 Yönetim Merkezi
 
-Admin:
+Admin ve developerların kullandığı ayrı Windows uygulamasıdır.
 
-- proje açabilir,
-- kullanıcı yönetebilir,
-- görev oluşturabilir,
-- deadline belirleyebilir,
-- build yayınlayabilir,
-- retest isteyebilir,
-- bug durumlarını değiştirebilir,
-- root cause girebilir,
-- duyuru gönderebilir,
-- analytics görebilir,
-- build arşivleyebilir,
-- proje kapatabilir,
-- güvenli purge sürecini başlatabilir.
+Temel çalışan katmanda:
 
-Developer:
+- yönetici/geliştirici cihaz oturumu,
+- rol doğrulaması,
+- proje listesini alma,
+- proje çözüm özetini gösterme,
+- admin kullanıcı oluşturma,
+- kullanıcıyı etkin/devre dışı bırakma,
+- cihaz eşleşmesini sıfırlama
 
-- kendisine açık projeleri görebilir,
-- build oluşturabilir,
-- build dosyası yükleyebilir,
-- changelog yazabilir,
-- kurulum talimatı yazabilir,
-- fix candidate bugları seçebilir,
-- ilgili hata kayıtlarını inceleyebilir.
+bulunmaktadır.
 
-Developerın kritik yönetim yetkileri bulunmaz.
+Yönetim Merkezi arayüzünde ayrıca aşağıdaki çalışma alanları hazırlanmıştır:
 
-## Backend API
+- Genel Bakış
+- Hata Raporları
+- Yeniden Testler
+- Test Yönetimi
+- Ekip Yönetimi
+- Test Sürümleri
+- Bildirimler
+- İstemci Sürümleri
+- Proje Ayarları
+
+Bu çalışma alanlarının bir kısmı henüz gerçek API verisine tam bağlanma aşamasındadır.
+
+## 4.3 Backend API
 
 FastAPI tabanlı servis katmanıdır.
 
-Masaüstü istemciler ile veritabanı/Hugging Face arasında güvenli köprü görevi görür.
+Sorumlulukları:
 
-## Shared Contracts
+- kimlik doğrulama,
+- rol kontrolü,
+- proje kapsamı kontrolü,
+- görev yönetimi,
+- hata kayıtları,
+- yeniden testler,
+- build metadata,
+- HF depolama işlemleri,
+- audit eventler,
+- analytics sorguları,
+- ileride bildirim/WebSocket ve purge işlemleri.
 
-Tester ve Admin uygulamalarının aynı veri sözleşmelerini kullanmasını sağlayan ortak .NET katmanıdır.
+## 4.4 Shared .NET katmanı
 
-## Launcher
+Tester ile Yönetim Merkezi aynı API sözleşmelerini kullanır.
 
-Kullanıcının masaüstünde kalıcı olarak bulunan küçük başlatıcıdır.
+Bu katmanda:
 
-Yeni client sürümü çıktığında payload'ı indirir, SHA-256 kontrolü yapar ve güncel client'ı çalıştırır.
+- ortak DTO'lar,
+- API istemcisi,
+- Türkçe metin/durum çeviri katmanı,
+- tarih ve dosya boyutu biçimlendirmeleri
+
+bulunur.
+
+## 4.5 Launcher
+
+Kullanıcıya ilk kez verilen kalıcı başlatıcıdır.
+
+Hedef:
+
+> Her uygulama güncellemesinde testerlara yeni EXE dağıtmak zorunda kalmamak.
+
+Launcher yeni sürüm varsa indirir, SHA-256 doğrulaması yapar ve doğru payload'ı açar.
 
 ---
 
 # 5. Kullanıcı rolleri
 
-Platform dört temel role sahiptir.
+## 5.1 Test Ekibi Üyesi
 
-## Tester
+Teknik enum: `tester`
 
-- atanmış projeleri görür,
-- build indirir,
-- görev yapar,
-- hata raporu gönderir,
-- video gönderir,
-- retest yapar,
-- bildirimleri görür.
+Yetkiler:
 
-## Developer
+- atanmış projeleri görme,
+- görevleri görme,
+- build bilgisini görme,
+- hata raporlama,
+- kendi raporuna video ekleme,
+- kendisine atanmış yeniden testleri görme,
+- yeniden test sonucu gönderme,
+- yeniden test kanıtı ekleme.
 
-Tester yetkilerine ek olarak:
+## 5.2 Geliştirici
 
-- build metadata oluşturabilir,
-- build dosyası yükleyebilir,
-- changelog ve kurulum açıklaması yazabilir,
-- fix candidate belirleyebilir.
+Teknik enum: `developer`
 
-## Admin
+Tester yetkilerine ek olarak gelecekte/ilgili yönetim ekranlarında:
 
-Developer yetkilerine ek olarak:
+- build oluşturma,
+- build dosyası yükleme,
+- değişiklik notu yazma,
+- kurulum talimatı yazma,
+- fix candidate işaretleme
 
-- kullanıcı yönetir,
-- görev yönetir,
-- build'i Current Test Build olarak yayınlar,
-- bug durumunu yönetir,
-- retest ister,
-- bildirim gönderir,
-- build arşivler,
-- proje kapatır,
-- analytics ekranlarının tamamını görür.
+işlemlerini yapar.
 
-## Super Admin
+Geliştirici kullanıcı/cihaz yönetimi gibi kritik admin yetkilerine sahip değildir.
 
-Admin yetkilerine ek olarak en yüksek riskli platform işlemlerini gerçekleştirebilir.
+## 5.3 Yönetici
 
-Örneğin:
+Teknik enum: `admin`
 
-- kritik sistem ayarları,
-- kalıcı proje silme süreci,
-- diğer admin yetkileri.
+Yetkileri:
+
+- ekip üyesi oluşturma,
+- kullanıcı etkin/devre dışı,
+- cihaz sıfırlama,
+- proje/görev yönetimi,
+- build yayınlama,
+- bug durumu yönetimi,
+- yeniden test isteme,
+- bildirim yönetimi,
+- analytics,
+- build arşivleme,
+- proje kapatma,
+- purge sürecine katılma.
+
+## 5.4 Süper Yönetici
+
+Teknik enum: `super_admin`
+
+En yüksek riskli sistem işlemleri içindir.
+
+Normal kullanıcı oluşturma ekranından yeni Süper Yönetici açılamaz.
 
 ---
 
-# 6. Tester uygulaması nasıl çalışır?
+# 6. Tester uygulaması
 
-## İlk kullanım
+## 6.1 Tester önceden sistemde oluşturulur
 
-Tester EXE'yi ilk kez açtığında teknik bir giriş formu gösterilmez.
-
-Kullanıcı yalnızca kendi adını yazar.
+Tester uygulamayı ilk kez açmadan önce admin **Ekip Yönetimi** ekranından tester adını oluşturur.
 
 Örnek:
+
+```text
+Ad: Ahmet
+Rol: Test Ekibi Üyesi
+```
+
+Testerın kendi hesabını uygulama içinden serbestçe oluşturması istenmez.
+
+Bunun nedeni:
+
+- kimlerin test ekibinde olduğunun kontrol edilmesi,
+- rastgele kişilerin yalnız isim yazarak sisteme girmesinin engellenmesi,
+- cihaz eşleştirmesinin yönetici kontrolünde olmasıdır.
+
+## 6.2 İlk açılış
+
+Tester yalnız şunu görür:
 
 ```text
 DmC Türkçe Dublaj Test
 
 Adınız
-[ Ahmet                    ]
+[ Ahmet                  ]
 
 [ Devam ]
 ```
 
-Arka planda cihaz enrollment işlemi gerçekleştirilir.
+Arka planda uygulama:
 
-Amaç kullanıcının:
+1. yerel rastgele kurulum kimliği üretir,
+2. backendde `Ahmet` kullanıcısını arar,
+3. bu kullanıcı başka aktif cihaza bağlı mı kontrol eder,
+4. uygunsa cihaz kaydı oluşturur,
+5. rastgele cihaz credential'ı alır,
+6. credential'ı Windows DPAPI ile şifreler,
+7. sonraki açılışlarda kullanıcıya tekrar sormadan oturumu doğrular.
 
-- parola,
-- token,
-- Hugging Face hesabı,
-- API anahtarı
+## 6.3 Ana ekran
 
-gibi kavramlarla uğraşmamasıdır.
+Ana ekranda:
 
-## Ana ekran
+- kullanıcı adı,
+- bağlantı durumu,
+- projeler,
+- aktif ortak görev,
+- görevin son tarihi,
+- güncel test sürümü,
+- yeniden test sayısı,
+- bilinen sorun çözüm oranı,
+- hata raporlama butonu
 
-Ana ekran proje odaklıdır.
+bulunur.
 
-Tester aynı anda birden fazla projeye atanmışsa sol menüde yalnızca kendisine atanmış projeleri görür.
+## 6.4 İnternet bağlantısı kesilirse
 
-Örnek:
+Yerel güvenli credential hemen silinmez.
 
-```text
-Projelerim
+Uygulama:
 
-DmC: Devil May Cry
-2 aktif görev • 1 retest
+> Bağlantı yok
 
-Project B
-1 aktif görev
-```
+şeklinde durum gösterir.
 
-## Ortak görev kartı
-
-Tester kendisine atanmış aktif ortak görevi görür.
-
-Görev:
-
-- başlık,
-- açıklama,
-- gerekli build,
-- deadline,
-- göreve atanmış diğer testerlar
-
-ile birlikte gösterilir.
-
-## Current Test Build kartı
-
-Tester her zaman admin tarafından onaylanmış güncel test build'ini görür.
-
-Developerın sadece yüklediği fakat adminin henüz yayınlamadığı candidate build normal tester ekranına çıkmaz.
-
-## Retest alanı
-
-Tester kendisinden kaç retest beklendiğini doğrudan ana ekranda görür.
-
-## Bilinen sorunların durumu
-
-Tester proje durumunu şu kategoriler üzerinden görür:
-
-- Çözüldü
-- Üzerinde Çalışılıyor
-- Retest Bekliyor
-- Yeni / Henüz Başlanmadı
-
-Bu progress bar **test kapsamı yüzdesi değildir**.
+Ancak backend credential'ı gerçekten reddeder veya admin cihazı revoke ederse kullanıcı yeniden eşleştirme ekranına döner.
 
 ---
 
-# 7. Admin ve Developer uygulaması nasıl çalışır?
+# 7. Yönetim Merkezi
 
-Admin Control Center proje seçimiyle çalışır.
+## 7.1 Yönetici/geliştirici girişi
 
-Temel bölümler:
+Yönetim Merkezi Tester Client'tan ayrı cihaz oturumu kullanır.
 
-- Genel Bakış
-- Hata Raporları
-- Retestler
-- Test Yönetimi
-- Build Merkezi
-- Bildirimler
-- İstemci Sürümleri
-- Proje Ayarları
+İlk kullanımda admin veya developer kendi adını girer.
 
-Adminin seçtiği proje bütün ekranlar için aktif bağlam olur.
+Backend `client_kind=admin` bilgisini alır.
 
-Örneğin DmC seçiliyken Project B verileri yanlışlıkla aynı tabloda gösterilmez.
+Normal `tester` rolü bu istemci üzerinden cihaz enrollment yapamaz.
 
-## Genel Bakış
+## 7.2 Ekip Yönetimi
 
-Admin aşağıdaki değerleri anlık görebilir:
+Yalnız yönetici rollerine görünür.
+
+Admin şunları yapabilir:
+
+- yeni Tester oluştur,
+- yeni Geliştirici oluştur,
+- yeni Yönetici oluştur,
+- hesabı devre dışı bırak,
+- hesabı yeniden etkinleştir,
+- aktif cihaz sayısını gör,
+- cihaz eşleşmesini sıfırla.
+
+Örnek cihaz değişimi:
+
+1. Ahmet eski bilgisayarı kullanmayı bırakır.
+2. Admin Ahmet'i seçer.
+3. **Cihaz Eşleşmesini Sıfırla** der.
+4. Eski credential revoke edilir.
+5. Ahmet yeni bilgisayarda uygulamayı açar.
+6. Adını yazar.
+7. Yeni cihaz güvenli biçimde eşleşir.
+
+## 7.3 Proje özeti
+
+Yönetim Merkezi seçilen proje için şu temel değerleri gerçek API'den alır:
 
 - toplam rapor,
-- geçerli sorun,
 - aktif sorun,
-- çözülmüş sorun,
-- retest bekleyen sorun,
-- çözüm oranı,
-- bug türleri,
-- tester geri bildirim istatistikleri,
-- retest sağlığı.
+- yeniden test bekleyen,
+- çözülen,
+- çözüm oranı.
 
-## Hata Raporları
-
-Filtreler:
-
-- durum,
-- bug türü,
-- build,
-- tester,
-- Mission/Chapter,
-- trigger,
-- tarih,
-- reproducibility,
-- retest sonucu.
-
-Amaç yüzlerce rapor içinde istenilen probleme birkaç saniyede ulaşabilmektir.
+Çözüm çubuğundaki segmentler veriyle dinamik büyür/küçülür.
 
 ---
 
-# 8. Proje yapısı
+# 8. Güvenli cihaz eşleştirmesi
 
-Platformun en üst nesnesi `Project`tir.
+## Neden donanım seri numarası kullanılmıyor?
+
+Bir bilgisayarın anakart seri numarası, MAC adresi veya benzeri donanım verilerini zorunlu fingerprint haline getirmek:
+
+- gereksiz veri toplama,
+- donanım değişiminde kırılma,
+- sanal makine/Windows güncellemesi sorunları
+
+oluşturabilir.
+
+Bu nedenle istemci ilk çalıştırmada rastgele `installation_id` üretir.
+
+Backend bunun SHA-256 özetini cihaz fingerprint'i olarak saklar.
+
+## Cihaz credential'ı
+
+Backend rastgele uzun bir credential üretir.
+
+Veritabanında credential'ın kendisi değil hash'i tutulur.
+
+İstemci tarafında credential Windows `ProtectedData / CurrentUser` kullanılarak şifrelenir.
+
+Böylece `client.json` dosyası düz metin bearer token içermez.
+
+## HF anahtarıyla farkı
+
+Tester cihaz credential'ı yalnız QA API'ye erişir.
+
+Testerın elinde Hugging Face write token yoktur.
+
+---
+
+# 9. Proje yapısı ve çoklu proje desteği
+
+En üst nesne `Project`tir.
 
 Örnek:
 
 ```text
-QA Platform
+Oyun QA Platformu
 │
 ├── DmC: Devil May Cry Türkçe Dublaj
 ├── Project B
@@ -515,43 +617,43 @@ QA Platform
 Her proje kendi:
 
 - üyelerine,
-- bölümlerine,
+- sectionlarına,
 - buildlerine,
 - görevlerine,
 - buglarına,
-- retestlerine,
+- yeniden testlerine,
 - bildirimlerine,
-- analytics verilerine
+- analytics verilerine,
+- HF storage namespace'ine
 
 sahiptir.
 
-Projeler birbirinden veri seviyesinde ayrılır.
+Bir tester yalnız kendisinin üyesi olduğu projeleri görür.
 
-## Section
+## Section etiketi
 
-Her oyunda aynı terim kullanılmak zorunda değildir.
+Projeye göre bölüm adı değişebilir:
 
-Örneğin:
+- Mission
+- Chapter
+- Episode
+- Level
+- Bölüm
 
-- DmC → Mission
-- başka oyun → Chapter
-- başka oyun → Episode
-- başka oyun → Level
-
-Proje oluşturulurken section etiketi seçilebilir.
+Bu nedenle veritabanı alanı generic `Section` olarak tasarlanmıştır.
 
 ---
 
-# 9. Ortak görev sistemi
+# 10. Ortak görev sistemi
 
-Bir admin bir görevi bir veya birden fazla testera atayabilir.
+Bir görev üç testera verilmişse üç ayrı kopya oluşturmak yerine tek shared task kullanılır.
 
-Örneğin:
+Örnek:
 
 ```text
 Görev: Mission 04 Tam Bölüm Testi
-Build: 0.6.4
-Deadline: 14 gün
+Test Sürümü: 0.6.4
+Son Tarih: 24 Ağustos 2026
 
 Atananlar:
 - Ahmet
@@ -559,142 +661,181 @@ Atananlar:
 - Burak
 ```
 
-Sistem üç farklı görev oluşturmaz.
+Üç tester aynı görev kimliğini görür.
 
-Tek bir shared task oluşturur.
-
-Üç tester da aynı ortak görev panelini görür.
-
-Ortak panelde:
+Ortak bilgiler:
 
 - görev başlığı,
 - açıklama,
-- build,
-- deadline,
-- atanan kişiler,
-- görev kapsamında raporlanan sorunlar,
-- son aktiviteler
+- gerekli build,
+- son tarih,
+- görevdeki testerlar,
+- görevle ilişkili raporlar.
 
-ortaktır.
-
-Kişisel alanlar ise kişiye göre değişebilir:
+Kişisel bilgiler:
 
 - benim raporlarım,
-- benden beklenen retestler,
-- benim bildirimlerim.
+- benden beklenen yeniden testler,
+- benim bildirim okuma durumum.
 
 ---
 
-# 10. Build yönetimi
+# 11. Son tarih sistemi
 
-Build sistemi platformun ana parçalarından biridir.
+Deadline ilerleme yüzdesi değildir.
+
+Bir görev için:
+
+```text
+Mission 05 Tam Test
+59 gün kaldı
+```
+
+gösterilebilir.
+
+Zaman yaklaştıkça görsel önem artırılabilir:
+
+- uzun süre → normal,
+- 7 gün → sarı,
+- 3 gün → turuncu,
+- 24 saat → kırmızı,
+- süre geçti → gecikmiş.
+
+Son tarih ayrı bir zaman metriğidir.
+
+Bilinen sorun çözüm çubuğuyla karıştırılmaz.
+
+---
+
+# 12. Test sürümü / build yönetimi
+
+Build sistemin ana nesnelerinden biridir.
 
 ## Build durumları
 
-Temel lifecycle:
+Teknik durumlar:
 
 ```text
-Uploading
-↓
-Candidate
-↓
-Current
-↓
-Superseded
-↓
-Archived
+uploading
+candidate
+current
+superseded
+archived
 ```
 
-Türkçe arayüzde bu durumlar Türkçeleştirilmiş karşılıklarıyla gösterilir.
+Türkçe arayüzde:
 
-## Developer build yükleme
+```text
+Yükleniyor
+Aday Test Sürümü
+Güncel Test Sürümü
+Yerine Yeni Sürüm Geldi
+Arşivlendi
+```
 
-Developer yeni build oluştururken şunları girer:
+gösterilir.
+
+## Candidate ve Current farkı
+
+Developer yeni dosya yüklediğinde bu sürüm anında herkese dağıtılmaz.
+
+Önce `Candidate` olur.
+
+Admin kontrol ettikten sonra:
+
+> Güncel Test Sürümü Olarak Yayınla
+
+kararı verir.
+
+Bu ayrım yanlış/eksik buildin bütün tester ekibine gitmesini önler.
+
+## Build metadata
+
+Her build için:
 
 - sürüm,
 - başlık,
 - açıklama,
 - changelog,
 - kurulum talimatı,
-- build dosyası,
-- bu buildde düzeltilmesi hedeflenen buglar.
+- dosya adı,
+- dosya boyutu,
+- SHA-256,
+- yükleyen,
+- yayınlayan,
+- yüklenme tarihi,
+- yayın tarihi,
+- arşiv tarihi
 
-Örnek:
+saklanabilir.
+
+## Build ile bug ilişkisi
+
+Bir bug `reported_build_id` taşır.
+
+Bu sayede:
+
+> Bu hata hangi sürümde vardı?
+
+sorusunun cevabı korunur.
+
+## Fix candidate
+
+Developer bir build oluştururken hangi bugların bu buildde düzeltilmiş olması beklendiğini belirleyebilir.
+
+Bu buglar yeniden test akışına sokulabilir.
+
+---
+
+# 13. Build indirme ve kurulum açıklamaları
+
+Tester uygulamasındaki hedef deneyim:
 
 ```text
-Sürüm: 0.6.4
-Başlık: Mission 04 Ses Düzeltmeleri
+GÜNCEL TEST SÜRÜMÜ
+0.6.4
+Mission 04 Ses Düzeltmeleri
 
-Değişiklikler:
-- Dante checkpoint tekrar problemi düzeltildi.
-- Boss intro senkron ayarı güncellendi.
+[ Test Sürümünü İndir ]
+[ Kurulum Talimatları ]
+```
 
+Tester Discord geçmişinden kurulum mesajı aramak zorunda kalmamalıdır.
+
+Build açıklamasında örneğin:
+
+```text
 Kurulum:
-1. Eski mod klasörünü kaldırın.
+1. Eski DmC_Dub klasörünü kaldırın.
 2. ZIP içeriğini oyun klasörüne çıkartın.
 3. Oyunu yeniden başlatın.
 ```
 
-## Candidate ve Current farkı
+bulunabilir.
 
-Developerın yüklediği son dosya otomatik olarak bütün testerlara dağıtılmaz.
-
-Bu güvenlik açısından özellikle önemlidir.
-
-Admin build'i kontrol ettikten sonra:
-
-> **Güncel Test Build'i Olarak Yayınla**
-
-işlemini gerçekleştirir.
-
-Bu işlemden sonra tester uygulaması yeni build'i en güncel build olarak gösterir.
-
-## Build ile görev bağlantısı
-
-Bir shared task belirli bir build'e bağlanabilir.
-
-Bu nedenle yeni build çıktığında eski görev sessizce başka build'e geçirilmez.
-
-Admin karar verir:
-
-- görev eski build ile devam etsin,
-- görev yeni build'e geçirilsin,
-- yeni build için yeni görev oluşturulsun.
-
-## Build arşivleme
-
-Build test süreci bittikten sonra yalnızca admin tarafından arşivlenebilir.
-
-Arşivlenecek build:
-
-- Current olamaz,
-- açık bir görev tarafından zorunlu build olarak kullanılıyor olamaz.
-
-Arşivlemede büyük dosya mümkün olduğunca tekrar upload edilmez. Hugging Face bucket içinde aktif prefix'ten archived prefix'e taşınır/kopyalanır.
+Build download/install masaüstü akışının backend temeli vardır; istemciye tam indirme ve kuruldu işaretleme bağlantısı sonraki geliştirme aşamalarındadır.
 
 ---
 
-# 11. Hata raporlama sistemi
+# 14. Hata raporlama
 
-Tester hata gönderirken mümkün olduğunca structured veri üretir.
+Tester için gerçek Türkçe hata raporu penceresi bulunmaktadır.
 
-Örnek alanlar:
+## Alanlar
 
 - Proje
-- Mission / Chapter
-- Görev
-- Test edilen build
+- Ortak görev
+- Test sürümü
 - Başlık
 - Hata türü
-- Hatanın oluştuğu koşul
+- Oluşma koşulu
 - Açıklama
-- Reproducibility
-- Video timestamp
-- Video / evidence
+- Kaç kez denendi
+- Kaçında oluştu
+- Videodaki hata anı
+- Video/görsel kanıt
 
-## Hata türleri
-
-DmC Türkçe Dublaj projesinde başlangıç listesi:
+## DmC başlangıç hata türleri
 
 - Eksik Türkçe Ses
 - Yanlış Replik / Yanlış Ses
@@ -706,30 +847,117 @@ DmC Türkçe Dublaj projesinde başlangıç listesi:
 - Teknik Problem
 - Diğer
 
-Bu liste ileride proje bazlı özelleştirilebilir.
-
-## Trigger / oluşma koşulu
-
-Örnek:
+## Oluşma koşulları
 
 - Normal oynanış
-- Ara sahne atlama
-- Ölüm / Checkpoint
-- Mission yeniden başlatma
-- Dövüşü hızlı bitirme
-- Dövüşü uzun sürdürme
-- Boss geçişi
-- Bilinmiyor
+- Ara sahne atlandıktan sonra
+- Ölüm / Checkpoint sonrası
+- Mission yeniden başlatıldıktan sonra
+- Dövüş çok hızlı bitirildiğinde
+- Dövüş uzun sürdüğünde
+- Boss / sahne geçişinde
+- Bilinmiyor / Emin değilim
 
-Tester teknik root cause seçmek zorunda değildir.
+## Root cause neden testera sorulmuyor?
 
-Tester gördüğü koşulu bildirir.
+Tester:
 
-Teknik root cause admin/developer incelemesinde belirlenir.
+> Checkpoint sonrası ses iki kez çaldı.
+
+diyebilir.
+
+Bunun gerçek teknik nedeni:
+
+- state reset,
+- yanlış trigger,
+- asset mapping,
+- entegrasyon,
+- engine davranışı
+
+olabilir.
+
+Testerın teknik kök neden tahmini zorunlu değildir.
+
+Root cause admin/developer değerlendirmesidir.
 
 ---
 
-# 12. Hata yaşam döngüsü
+# 15. Video ve kanıt dosyaları
+
+Video kanıt API'si çalışmaktadır.
+
+Desteklenen istemci dosya türleri arasında:
+
+- MP4
+- MOV
+- MKV
+- WebM
+- AVI
+- PNG
+- JPG/JPEG
+
+bulunur.
+
+## Bug videosu
+
+Dosya yolu örneği:
+
+```text
+projects/
+  <project-id>/
+    reports/
+      <bug-key>/
+        evidence/
+          <asset-id>-video.mp4
+```
+
+## Yeniden test videosu
+
+```text
+projects/
+  <project-id>/
+    retests/
+      <retest-request-id>/
+        evidence/
+          <asset-id>-video.mp4
+```
+
+## Kaydedilen metadata
+
+- evidence ID,
+- proje,
+- sahip nesne,
+- orijinal dosya adı,
+- medya türü,
+- dosya boyutu,
+- SHA-256,
+- yükleyen kullanıcı,
+- tarih,
+- storage path.
+
+## Varsayılan üst sınır
+
+Backend varsayılan olarak video/kanıt dosyası için 20 GB üst limit kullanır.
+
+Bu değer environment ayarıyla değiştirilebilir.
+
+## Duplicate-safe video tekrar denemesi
+
+Önemli kullanıcı deneyimi davranışı:
+
+1. Tester **Raporu Gönder** der.
+2. Bug kaydı başarıyla oluşur.
+3. İnternet video yüklenirken kopar.
+4. Ekranda rapor ID'si korunur.
+5. Kullanıcı **Videoyu Tekrar Yükle** der.
+6. İkinci bug oluşturulmaz.
+7. Yalnız evidence tekrar yüklenir.
+
+Bu davranış ağ hatalarının duplicate bug üretmesini önler.
+
+---
+
+# 16. Hata yaşam döngüsü
 
 Ana akış:
 
@@ -740,7 +968,7 @@ Yeni
 ↓
 Üzerinde Çalışılıyor
 ↓
-Retest Bekliyor
+Yeniden Test Bekliyor
 ↓
 Çözüldü
 ```
@@ -749,116 +977,135 @@ Yan durumlar:
 
 - Beklemede
 - Tekrar Rapor
-- Bug Değil
+- Hata Değil
 - Düzeltilmeyecek
 - Yeniden Açıldı
 
-## Geçmişin korunması
+## BugEvent
 
-Bir bugın status alanı değiştirildiğinde önceki olay kaybolmaz.
+Durum değişiklikleri event olarak kaydedilir.
 
-Her değişiklik event olarak kaydedilir.
-
-Örneğin:
+Örnek:
 
 ```text
 10 Ağustos 14:31 — Ahmet rapor oluşturdu
 10 Ağustos 15:06 — Hasan raporu inceledi
 11 Ağustos 09:22 — Üzerinde çalışılıyor
-13 Ağustos 18:14 — Build 0.6.2 için retest istendi
-14 Ağustos 11:42 — Retest başarısız
+13 Ağustos 18:14 — 0.6.2 için yeniden test istendi
+14 Ağustos 11:42 — Yeniden test başarısız
 15 Ağustos 10:17 — Tekrar çalışmaya alındı
-17 Ağustos 16:21 — Build 0.6.3 için retest istendi
-18 Ağustos 13:04 — Retest başarılı
-18 Ağustos 13:32 — Admin tarafından çözüldü
+17 Ağustos 16:21 — 0.6.3 için yeniden test istendi
+18 Ağustos 13:04 — Yeniden test başarılı
+18 Ağustos 13:32 — Yönetici tarafından çözüldü
 ```
 
 ---
 
-# 13. Retest sistemi
+# 17. Yeniden test sistemi
 
-Retest platformda ayrı ve birinci sınıf bir nesnedir.
+Tester tarafında gerçek yeniden test ekranı bulunmaktadır.
 
-Admin bir bug için retest oluşturduğunda:
+## Admin talebinin veri yapısı
 
-- hangi build üzerinde yapılacağı,
-- kimlerden istendiği,
-- deadline,
-- admin notu
+Bir yeniden test talebinde:
 
-kaydedilir.
+- bug,
+- gerekli build,
+- isteyen admin,
+- atanan testerlar,
+- açıklama,
+- son tarih
 
-Retest:
+saklanır.
 
-- ilk raporlayan tester,
-- göreve atanmış bütün testerlar,
-- admin tarafından seçilen belirli testerlar
-
-için oluşturulabilir.
-
-## Tester sonucu
-
-Tester üç temel sonuçtan birini seçebilir:
-
-- Sorun artık oluşmuyor
-- Sorun hâlâ oluşuyor
-- Emin olamadım
-
-Tester gerektiğinde yeni video ekleyebilir.
-
-## Birden fazla tester sonucu
+## Aynı talep birden fazla testera atanabilir
 
 Örnek:
 
 ```text
-Ahmet   ✅ Başarılı
-Mehmet  ✅ Başarılı
-Burak   ❌ Başarısız
+DMC-0042
+Build 0.6.5
+
+Atananlar:
+- Ahmet
+- Mehmet
+- Burak
 ```
 
-Bu durumda bug otomatik olarak çözüldü sayılmaz.
+Bu tek bir retest request'tir.
 
-Admin bütün sonuçları birlikte değerlendirir.
+Her tester kendi sonucunu ayrı verir.
 
-## Güvenli kapanış
+Ahmet sonuç verdikten sonra:
 
-Başarılı retest bir bugı otomatik olarak `Çözüldü` yapmaz.
+- Ahmet'in bekleyen listesinden düşer,
+- Mehmet'in listesinden düşmez,
+- Burak'ın listesinden düşmez.
 
-Final çözüm kararı admine aittir.
+## Testerın gördüğü sonuç seçenekleri
 
-Başarısız retest ise bugı tekrar çalışma sürecine döndürebilir.
+Teknik enum yerine:
+
+- **Sorun artık oluşmuyor**
+- **Sorun hâlâ oluşuyor**
+- **Emin olamadım**
+
+seçenekleri gösterilir.
+
+## Yeniden test videosu
+
+Tester yeniden test sonucuna video/görsel kanıt ekleyebilir.
+
+Kanıt sonuç gönderilmeden önce yüklenir.
+
+## Başarısız sonuç
+
+Tek bir başarısız sonuç sorunu tekrar çalışma kuyruğuna döndürmek için yeterli kabul edilir.
+
+Örneğin:
+
+```text
+Ahmet   Başarılı
+Mehmet  Başarılı
+Burak   Başarısız
+```
+
+sistem bugı otomatik çözülmüş saymaz.
+
+## Başarılı sonuç
+
+Başarılı tester sonucu bugı doğrudan `Çözüldü` yapmaz.
+
+Final kapatma admin kararıdır.
 
 ---
 
-# 14. Bildirim ve duyuru sistemi
+# 18. Bildirim ve duyurular
 
-Admin uygulama içinden tester veya tester gruplarına bildirim gönderebilir.
+Bildirim veri modeli hazırdır; uçtan uca canlı bildirim sistemi geliştirme sırasındadır.
 
-Hedefler:
+Hedef bildirim türleri:
+
+- bilgi,
+- uyarı,
+- kritik,
+- okunması zorunlu.
+
+Hedef gruplar:
 
 - herkes,
-- belirli kullanıcı,
-- seçili kullanıcılar,
-- belirli projedeki kişiler,
-- belirli shared task üyeleri.
-
-## Normal bildirim
-
-Örnek:
-
-> Mission 04 teste açıldı.
-
-## Kritik bildirim
-
-Örnek:
-
-> Mission 06 buildinde bozuk dosya tespit edildi. Yeni build gelene kadar test yapmayın.
+- proje üyeleri,
+- belirli ortak görev üyeleri,
+- seçili testerlar,
+- tek kullanıcı.
 
 ## Okunması zorunlu duyuru
 
-`MUST READ` niteliğindeki duyuru tester tarafından onaylanmadan uygulamanın normal akışına devam edilmemesi planlanmaktadır.
+Örnek:
 
-Admin şu bilgiyi görebilir:
+> Mission 06 buildinde bozuk dosya tespit edildi. Yeni build yayınlanana kadar testi durdurun.
+
+Admin daha sonra:
 
 ```text
 Ahmet   Okudu
@@ -866,29 +1113,46 @@ Mehmet  Okudu
 Burak   Okumadı
 ```
 
+gibi receipt bilgisi görebilmelidir.
+
+Planlanan transport:
+
+- uygulama açıkken WebSocket,
+- bağlantı geri geldiğinde normal API senkronizasyonu,
+- ileride system tray / Windows bildirimi.
+
 ---
 
-# 15. İstatistik ve analiz sistemi
+# 19. İstatistik ve analiz yaklaşımı
 
-Platformun temel hedeflerinden biri QA verisini son derece görünür hale getirmektir.
+Analytics platformun ana özelliklerinden biri olacaktır.
 
-Dashboard yalnızca dekoratif grafikler üretmemelidir.
+## Ana kural
 
-Bir sayı veya grafik segmentine tıklandığında mümkün olduğunca arkasındaki gerçek bug kayıtlarına gidilebilmelidir.
+Grafik yalnız dekorasyon değildir.
+
+Örneğin:
+
+> 19 Yeniden Test Bekliyor
+
+kartına tıklandığında mümkün olduğunca bu 19 raporun filtrelenmiş listesine gidilmelidir.
 
 ## Ana metrikler
 
-- toplam rapor,
-- geçerli bug,
-- aktif bug,
-- çözülen bug,
-- retest bekleyen bug,
-- duplicate,
-- not a bug,
-- reopened / regression,
-- çözüm oranı.
+- Toplam rapor
+- Geçerli bilinen sorun
+- Çözülen
+- Üzerinde çalışılan
+- Yeniden test bekleyen
+- Yeni / henüz ele alınmayan
+- Beklemede
+- Duplicate
+- Hata değil
+- Yeniden açılan
+- Regression oranı
+- Çözüm oranı
 
-## Bug türü istatistikleri
+## Bug türü analizi
 
 Örnek:
 
@@ -900,93 +1164,117 @@ Kesilen Replik          31
 Yanlış Replik           22
 ```
 
-Her kategori için ayrıca:
+Her tür için:
 
 - çözüm oranı,
 - ortalama çözüm süresi,
-- retest başarı oranı,
+- yeniden test başarı oranı,
 - reopen oranı
 
 hesaplanabilir.
 
-## Bölüm bazlı istatistikler
-
-Örnek:
+## Mission / Section analizi
 
 ```text
-Mission 01   32 bug   30 çözüldü
-Mission 02   41 bug   35 çözüldü
-Mission 03   67 bug   31 çözüldü
+Mission 01   32 sorun   30 çözüldü
+Mission 02   41 sorun   35 çözüldü
+Mission 03   67 sorun   31 çözüldü
 ```
 
-## Build karşılaştırması
+## Zaman metrikleri
 
-Örnek:
-
-```text
-Build      Açık Bug   Yeni Bug   Çözülen   Regression
-0.6.2         78         31         18          8
-0.6.3         64         21         35          3
-0.6.4         43         12         33          2
-0.6.5         19          5         29          0
-```
-
-## Retest analytics
-
-- toplam retest,
-- ilk retestte başarılı,
-- ilk retestte başarısız,
-- ikinci retest gereken,
-- üç veya daha fazla retest gereken,
-- ortalama retest süresi.
-
-## Süre metrikleri
-
-Event geçmişinden şu metrikler çıkarılabilir:
+Event geçmişi sayesinde:
 
 - rapor → ilk admin incelemesi,
-- doğrulama → çalışmaya başlama,
-- çalışma → retest,
-- ilk rapor → çözüm.
+- inceleme → çalışmaya başlama,
+- çalışmaya başlama → yeniden test,
+- ilk rapor → çözüm
+
+süreleri hesaplanabilir.
 
 ---
 
-# 16. Tester istatistikleri
+# 20. Tester istatistikleri
 
-Platform bir "en çok bug bulan tester" yarışına dönüştürülmez.
+Platform "kim en çok bug buldu" yarışına dönüştürülmeyecektir.
 
-Bu tür leaderboardlar gereksiz veya kalitesiz raporu teşvik edebilir.
+En çok bug bulan kişi leaderboardu:
 
-Bunun yerine tester profili için sağlıklı metrikler tutulur:
+- gereksiz rapor,
+- duplicate rapor,
+- kalite yerine sayı odaklı davranış
 
-- gönderilen rapor sayısı,
-- doğrulanmış bug sayısı,
-- duplicate sayısı,
-- not a bug sayısı,
+teşvik edebilir.
+
+Bunun yerine sağlıklı kalite metrikleri tutulur:
+
+- toplam gönderim,
+- doğrulanmış sorun,
+- duplicate,
+- hata değil,
 - video ekleme oranı,
 - reproduction bilgisi ekleme oranı,
-- retest talepleri,
-- tamamlanan retestler,
-- retest cevap oranı,
-- ağırlıklı olarak bulduğu bug kategorileri.
+- tamamlanan yeniden test,
+- yeniden test cevap oranı,
+- ağırlıklı olarak bulduğu hata türleri.
 
-Bu bilgiler görev dağılımını iyileştirmek için kullanılabilir.
+Bu bir skor tablosu değil, tester geri bildirim profilidir.
 
 ---
 
-# 17. Hugging Face depolama yapısı
+# 21. Build istatistikleri
 
-Büyük dosyalar için Hugging Face Storage Bucket kullanılmaktadır.
+Buildler karşılaştırılabilir olmalıdır.
 
-İlk bucket:
+Örnek:
+
+```text
+Build      Açık   Yeni   Çözülen   Regression
+0.6.2       78     31       18          8
+0.6.3       64     21       35          3
+0.6.4       43     12       33          2
+0.6.5       19      5       29          0
+```
+
+Her build için ileride:
+
+- kaç tester indirdi,
+- kaç kişi kuruldu olarak işaretledi,
+- kaç hata raporlandı,
+- kaç fix candidate vardı,
+- kaç yeniden test geçti,
+- kaç yeniden test başarısız oldu,
+- kaç regression açıldı
+
+gösterilebilir.
+
+---
+
+# 22. Hugging Face depolama düzeni
+
+Büyük dosyalar için **Hugging Face Storage Bucket** kullanılmaktadır.
+
+Ana bucket:
 
 ```text
 xykeskin/dmc-turkish-dub-qa-archive
 ```
 
-Mevcut başka Hugging Face datasetleri bu sistem tarafından kullanılmaz veya değiştirilmez.
+Bu sistem kullanıcının mevcut diğer Hugging Face datasetlerini kullanmaz veya değiştirmez.
 
-## Önerilen proje prefix yapısı
+## Proje bazlı namespace
+
+```text
+projects/
+  <project-id>/
+    reports/
+    retests/
+    builds/
+      active/
+      archived/
+```
+
+## Örnek
 
 ```text
 projects/
@@ -994,12 +1282,12 @@ projects/
     reports/
       DMC-000001/
         evidence/
-          video.mp4
+          asset123-video.mp4
 
     retests/
-      RETEST-000001/
+      retest-001/
         evidence/
-          ahmet-video.mp4
+          asset456-video.mp4
 
     builds/
       active/
@@ -1011,23 +1299,23 @@ projects/
           DmC-Dub-0.6.3.zip
 ```
 
-Bucket klasörleri/prefixleri kullanıcı tarafından elle oluşturulmak zorunda değildir.
+Storage path uygulama tarafından otomatik üretilir.
 
-Dosya ilgili remote path'e yazıldığında yapı doğal olarak oluşur.
+Tester klasör oluşturmaz.
 
-## Metadata neden bucketta tutulmuyor?
+## Neden metadata HF JSON'u değil?
 
-QA state'in ana kaynağı veritabanıdır.
+Hugging Face büyük binary depolama katmanıdır.
 
-Bucket büyük binary dosyaların depolama katmanıdır.
+QA state'in ana kaynağı ilişkisel veritabanıdır.
 
 ---
 
-# 18. Uygulama güncelleme sistemi
+# 23. Uygulama güncelleme sistemi
 
-Testerın her sürümde yeni bir EXE indirmesi hedeflenmez.
+Testerın her yeni sürümde farklı EXE indirmesi hedeflenmez.
 
-Kullanıcıya bir kez kalıcı launcher verilir.
+Kullanıcıya sabit bir launcher verilir.
 
 Örnek:
 
@@ -1037,171 +1325,144 @@ DmC-Dub-QA.exe
 
 Launcher:
 
-1. backendden güncel release manifestini ister,
-2. local sürüm ile karşılaştırır,
-3. yeni sürüm varsa paketini indirir,
-4. SHA-256 doğrulaması yapar,
-5. yeni sürümü ayrı klasöre çıkarır,
-6. client'ı çalıştırır,
-7. güncelleme başarısızsa uygun durumda önceki çalışan sürüme geri dönebilir.
+1. QA backendden güncel istemci manifestini ister.
+2. Yerel sürümle karşılaştırır.
+3. Yeni sürüm varsa paketi indirir.
+4. SHA-256 doğrulaması yapar.
+5. Yeni sürümü ayrı klasöre çıkarır.
+6. Doğru istemci EXE'sini çalıştırır.
+7. Güncelleme başarısız olursa mevcut çalışan sürümden devam etmeyi mümkün kılar.
 
-## Stable ve Beta
+## Kanallar
 
-İki release kanalı planlanmıştır:
-
-- Stable
+- Kararlı
 - Beta
 
-Normal testerlar Stable kanalını kullanır.
+Normal testerlar Kararlı kanalını kullanabilir.
 
-Admin/developer ekibi yeni özellikleri Beta kanalında deneyebilir.
+Admin/geliştirici ekibi Beta kanalında yeni özellikleri deneyebilir.
 
 ## Güncelleme notları
 
-Her client release için:
+Her release için:
 
 - sürüm,
 - başlık,
-- güncelleme notu,
-- yayın tarihi
+- notlar,
+- kanal,
+- zorunlu olup olmadığı
 
-saklanır.
-
-Tester yeni sürümü ilk kez açtığında release notes gösterilebilir.
+saklanabilir.
 
 ---
 
-# 19. Çoklu proje desteği
+# 24. Türkçe dil desteği
 
-Sistem DmC bittikten sonra çöpe atılacak tek oyunluk bir araç değildir.
+Platformun son kullanıcı ana dili **Türkçe**dir.
 
-Aynı anda örneğin:
+Bu yalnızca birkaç butonun çevrilmesi anlamına gelmez.
+
+## Türkçe olması gerekenler
+
+- pencere başlıkları,
+- menüler,
+- butonlar,
+- tablo başlıkları,
+- durum adları,
+- rol adları,
+- hata mesajları,
+- bağlantı mesajları,
+- bildirimler,
+- son tarih metinleri,
+- tarih formatları,
+- dosya boyutları,
+- güncelleme uyarıları,
+- tester hata formu,
+- yeniden test formu,
+- yönetim giriş ekranı,
+- ekip yönetimi.
+
+## Merkezi çeviri katmanı
+
+`src/Shared/TurkishUi.cs`
+
+teknik enumları kullanıcıya Türkçe gösterir.
+
+Örnek:
 
 ```text
-DmC Türkçe Dublaj        10 tester
-Project B                 5 tester
-Project C                 7 tester
-Project D                 3 tester
+in_progress       → Üzerinde Çalışılıyor
+retest_required   → Yeniden Test Bekliyor
+resolved          → Çözüldü
+duplicate         → Tekrar Rapor
+not_a_bug         → Hata Değil
+wont_fix          → Düzeltilmeyecek
+reopened          → Yeniden Açıldı
+candidate         → Aday Test Sürümü
+current           → Güncel Test Sürümü
 ```
 
-çalışabilir.
+## Kültür
 
-Bir tester birden fazla projede olabilir.
+Tester, Admin ve Launcher `tr-TR` kültürünü kullanır.
 
-Başka projeye atanmamış kullanıcı o projeyi görmez.
-
-Project scope şu nesnelere uygulanır:
-
-- üyelik,
-- section,
-- task,
-- build,
-- bug,
-- retest,
-- notification,
-- analytics,
-- storage path.
-
----
-
-# 20. Proje kapatma, arşivleme ve kalıcı silme
-
-Proje tamamlandığında iki farklı kavram vardır.
-
-## Projeyi Kapat
-
-Güvenli ve geri döndürülebilir operasyondur.
+Böylece tarihler örneğin:
 
 ```text
-ACTIVE
-↓
-CLOSED
+10 Ağustos 2026 14:32
 ```
 
-Kapatılan projede:
-
-- yeni normal test görevi açılamaz,
-- testerların aktif görünümünden çıkarılabilir,
-- mevcut kayıtlar admin tarafından incelenebilir,
-- dosyalar silinmez.
-
-## Permanent Purge
-
-Projenin verisini gerçekten kaldırır.
-
-Bu işlem yanlışlıkla yapılamayacak şekilde tasarlanacaktır.
-
-Hedef güvenlik adımları:
-
-1. Proje önce `CLOSED` olmalı.
-2. Silinecek veri özeti gösterilmeli.
-3. Proje adı elle yazılmalı.
-4. Rastgele doğrulama kodu girilmeli.
-5. İkinci farklı admin onayı alınmalı.
-6. Yalnızca ilgili `project_id` namespace'i silinmeli.
-
-Örnek özet:
-
-```text
-Silinecek:
-142 bug raporu
-197 video
-38 retest videosu
-24 görev
-187 bildirim kaydı
-128.7 GB Hugging Face verisi
-```
-
-## Audit tombstone
-
-Tercih edilirse içerik tamamen silindikten sonra yalnızca şu tip minimum audit kaydı korunabilir:
-
-- proje ID,
-- oluşturulma tarihi,
-- kapanma tarihi,
-- purge tarihi,
-- purge onaylayan adminler,
-- silinen toplam dosya/veri miktarı.
-
-Bu kayıt proje içeriğini içermez.
+formatında gösterilebilir.
 
 ---
 
-# 21. Güvenlik modeli
+# 25. Güvenlik modeli
 
-## HF token istemciye verilmez
+## 25.1 HF write token EXE içinde değildir
 
-Tester ve Admin uygulamasına Hugging Face write token gömülmez.
+Bu temel kuraldır.
 
-## Cihaz enrollment
+Tester veya admin EXE reverse-engineer edilse bile ana HF write tokenın istemcide bulunmaması hedeflenir.
 
-Tester ilk kullanımda adını yazsa da arkada cihaz eşleştirmesi yapılması planlanmaktadır.
+## 25.2 Device credential ayrı yetkidir
 
-Amaç EXE başka bilgisayara kopyalandığında aynı tester adının otomatik olarak yeni cihazda kabul edilmemesidir.
+Device credential yalnız QA API oturumu içindir.
 
-Cihaz sıfırlama admin tarafından yapılabilir.
+## 25.3 Server tarafında credential hash tutulur
 
-## Rol bazlı yetkilendirme
+Düz credential veritabanında saklanmaz.
 
-Backend yalnızca UI gizlemeye güvenmez.
+## 25.4 İstemcide DPAPI
 
-Yetki kontrolü API seviyesinde de yapılır.
+Windows kullanıcı profiline bağlı ProtectedData kullanılır.
 
-Örneğin developer arayüzde Archive butonunu görmese bile API üzerinden archive işlemi yapmasına izin verilmemelidir.
+## 25.5 Rol kontrolü yalnız UI gizleme değildir
 
-## Proje kapsamı kontrolü
+Örneğin Ekip Yönetimi butonunu developerdan gizlemek tek güvenlik değildir.
 
-Bir kullanıcı Project A üyesiyse Project B kaynaklarına yalnızca ID tahmin ederek ulaşamamalıdır.
+Backend `/admin/users` endpointi de admin rolü ister.
 
-## Kritik işlemler
+## 25.6 Proje kapsamı
 
-Permanent purge gibi işlemler standart admin aksiyonlarından ayrı güvenlik katmanlarına sahip olmalıdır.
+Normal kullanıcı başka proje ID'sini tahmin ederek o projenin kanıt dosyasını indirmemelidir.
+
+Evidence endpointlerinde proje üyeliği kontrolü bulunur.
+
+## 25.7 Başka testerın raporuna dosya ekleme
+
+Normal tester yalnız kendi hata raporuna evidence yükleyebilir.
+
+Admin/developer için daha geniş inceleme yetkileri tanımlanabilir.
+
+## 25.8 Yeniden test evidence yetkisi
+
+Normal tester yalnız kendisine atanmış yeniden test talebine evidence ekleyebilir.
 
 ---
 
-# 22. Veri modeli ve audit geçmişi
+# 26. Veritabanı ve olay geçmişi
 
-Temel tablolar / domain nesneleri:
+Temel domain tabloları:
 
 ```text
 Users
@@ -1220,64 +1481,93 @@ RetestRequests
 RetestAssignees
 RetestResults
 Notifications
-NotificationRecipients
+NotificationReceipts
 ClientReleases
 AuditEvents
 PurgeRequests
 ```
 
-## Neden BugEvent var?
+## BugEvent
 
-`BugReport.status = resolved` tek başına yeterli bilgi değildir.
-
-BugEvent sayesinde bugın bütün yaşam öyküsü korunur.
-
-Bu sistem analytics için temel veri kaynağıdır.
+Bug yaşam döngüsünü tarihsel olarak saklar.
 
 ## AuditEvent
 
-Build upload, download, archive veya kritik admin işlemleri gibi bug dışındaki olaylar için genel audit event tutulabilir.
+Bug dışı önemli işlemleri saklar.
+
+Örnek:
+
+- cihaz eşleşti,
+- kullanıcı oluşturuldu,
+- cihazlar sıfırlandı,
+- build dosyası yüklendi,
+- build indirilmeye başladı,
+- build arşivlendi,
+- evidence yüklendi.
+
+## Production veritabanı
+
+Hedef PostgreSQL'dir.
+
+Local geliştirmede SQLite kullanılabilir.
 
 ---
 
-# 23. Türkçe dil desteği
+# 27. Proje kapatma, arşivleme ve kalıcı silme
 
-Platformun ana kullanıcı dili **Türkçe**dir.
+İki kavram birbirinden ayrıdır.
 
-Tester ve Admin/Developer masaüstü uygulamalarında kullanıcıya görünen:
-
-- pencere başlıkları,
-- menüler,
-- butonlar,
-- durum adları,
-- hata mesajları,
-- bildirimler,
-- boş durum mesajları,
-- update ekranları,
-- progress açıklamaları,
-- tarih/süre metinleri
-
-Türkçe gösterilmelidir.
-
-Kod seviyesindeki enum ve API alanlarının İngilizce olması teknik olarak sorun değildir. UI katmanı bunları Türkçe karşılıklarıyla göstermelidir.
-
-Örneğin:
+## 27.1 Projeyi Kapat
 
 ```text
-in_progress       → Üzerinde Çalışılıyor
-retest_required   → Retest Bekliyor
-resolved          → Çözüldü
-duplicate         → Tekrar Rapor
-not_a_bug         → Bug Değil
-wont_fix          → Düzeltilmeyecek
-reopened          → Yeniden Açıldı
+ACTIVE
+↓
+CLOSED
 ```
 
-Türkçe kullanıcı deneyimi yalnızca bazı butonların çevrilmesi olarak değerlendirilmemelidir. Son kullanıcıya çıkan bütün uygulama akışı Türkçe olmalıdır.
+Bu işlem veri silmez.
+
+Amaç:
+
+- yeni normal test akışını durdurmak,
+- projeyi aktif tester ekranından çıkarmak,
+- geçmiş verileri admin incelemesine açık tutmak.
+
+## 27.2 Kalıcı Silme / Purge
+
+Bu geri alınamaz işlem için yüksek güvenlik hedeflenmektedir.
+
+Planlanan zorunlu adımlar:
+
+1. Proje önce Kapalı olmalı.
+2. Silinecek kapsam önizlenmeli.
+3. Proje adı elle yazılmalı.
+4. Rastgele doğrulama kodu girilmeli.
+5. Talebi bir admin başlatmalı.
+6. İkinci farklı admin onaylamalı.
+7. Yalnız ilgili project namespace silinmeli.
+8. Silme sonucu audit edilmelidir.
+
+Örnek önizleme:
+
+```text
+142 bug raporu
+197 video
+38 yeniden test videosu
+24 görev
+187 bildirim kaydı
+128,7 GB Hugging Face verisi
+```
+
+## Build arşivleme purge değildir
+
+Bir build arşivlendiğinde dosya proje içinde `active` alanından `archived` alanına taşınır.
+
+Proje verisi silinmez.
 
 ---
 
-# 24. Kaynak kod yapısı
+# 28. Kaynak kod yapısı
 
 ```text
 src/
@@ -1288,24 +1578,39 @@ src/
 │       ├── models.py
 │       ├── schemas.py
 │       ├── services.py
+│       ├── db.py
 │       ├── storage.py
+│       ├── auth.py
+│       ├── auth_api.py
 │       ├── build_api.py
-│       ├── release_api.py
-│       └── auth.py
+│       ├── evidence_api.py
+│       ├── retest_api.py
+│       └── release_api.py
 │
 ├── Shared/
 │   ├── Contracts.cs
-│   └── ApiClient.cs
+│   ├── ApiClient.cs
+│   └── TurkishUi.cs
 │
 ├── TesterApp/
 │   ├── App.xaml
+│   ├── App.xaml.cs
 │   ├── MainWindow.xaml
-│   └── MainWindow.xaml.cs
+│   ├── MainWindow.xaml.cs
+│   ├── BugReportWindow.xaml
+│   ├── BugReportWindow.xaml.cs
+│   ├── RetestWindow.xaml
+│   └── RetestWindow.xaml.cs
 │
 ├── AdminApp/
 │   ├── App.xaml
+│   ├── App.xaml.cs
+│   ├── AdminLoginWindow.xaml
+│   ├── AdminLoginWindow.xaml.cs
 │   ├── MainWindow.xaml
-│   └── MainWindow.xaml.cs
+│   ├── MainWindow.xaml.cs
+│   ├── TeamManagementWindow.xaml
+│   └── TeamManagementWindow.xaml.cs
 │
 └── Launcher/
     ├── Launcher.csproj
@@ -1330,27 +1635,22 @@ CI:
 
 ---
 
-# 25. Yerel geliştirme
+# 29. Yerel geliştirme
 
-> Bu bölüm geliştirme ortamı içindir. Normal testerların bunların hiçbirini yapması beklenmez.
+> Normal testerların aşağıdaki adımları yapması gerekmez.
 
 ## Backend
 
-Gereksinimler:
+Gereksinim:
 
 - Python 3.13
-- pip
 
-Örnek kurulum:
+Kurulum:
 
 ```bash
 cd src/api
 pip install -e '.[dev]'
 ```
-
-Geliştirme veritabanı varsayılan olarak SQLite ile çalışabilecek şekilde tasarlanmıştır.
-
-Production için hedef PostgreSQL'dir.
 
 Önemli environment değerleri:
 
@@ -1360,9 +1660,16 @@ HF_BUCKET_ID
 HF_TOKEN
 BOOTSTRAP_KEY
 DEVICE_CREDENTIAL_SECRET
+MAX_EVIDENCE_UPLOAD_BYTES
 ```
 
-`HF_TOKEN` kaynak koda yazılmamalıdır.
+Gerçek isimler `Settings` modelindeki alanlarla eşleştirilir.
+
+Ana güvenlik kuralı:
+
+```text
+HF_TOKEN kaynak koda commit edilmez.
+```
 
 ## Windows uygulamaları
 
@@ -1381,18 +1688,18 @@ dotnet build src/Launcher/Launcher.csproj -c Release
 
 ---
 
-# 26. CI / derleme doğrulaması
+# 30. CI ve derleme doğrulaması
 
-GitHub Actions CI iki ana job çalıştırır.
+GitHub Actions iki ana job çalıştırır.
 
-## Backend
+## Backend job
 
 - bağımlılık kurulumu,
-- Python compile kontrolü,
-- FastAPI application import kontrolü,
-- kritik correctness lint kontrolü.
+- Python compile,
+- FastAPI application import,
+- correctness odaklı Ruff kontrolleri.
 
-## Windows istemcileri
+## Windows job
 
 Gerçek Windows runner üzerinde:
 
@@ -1403,140 +1710,181 @@ Gerçek Windows runner üzerinde:
 
 derlenir.
 
-Amaç yalnızca kaynak kodun repositorye yazılmış olması değil, Windows üzerinde gerçekten compile edilebilir olmasıdır.
+Amaç yalnız kodun repoda görünmesi değil, platformun gerçek Windows derleyicisinden geçmesidir.
 
 ---
 
-# 27. Mevcut geliştirme durumu
+# 31. Mevcut geliştirme durumu
 
-Aşağıdaki tablo README güncellendiği andaki genel durumu anlatır.
+Bu tablo README'nin bu sürümündeki gerçek branch durumunu yansıtır.
 
 | Bileşen | Durum |
 |---|---|
 | Çoklu proje domain modeli | Temel hazır |
-| User / rol modeli | Temel hazır |
+| Kullanıcı / rol modeli | Temel hazır |
+| Tam Türkçe masaüstü kültür ve ana UI metinleri | Temel hazır |
+| Merkezi Türkçe durum/rol çeviri katmanı | Hazır |
+| Tester cihaz eşleştirme | Uçtan uca temel hazır |
+| Tester DPAPI güvenli oturum | Hazır |
+| Yönetici/Geliştirici cihaz girişi | Uçtan uca temel hazır |
+| Admin tester/developer/admin kullanıcı ön-kayıt | Hazır |
+| Admin kullanıcı etkin/devre dışı | Hazır |
+| Admin cihaz eşleşmesi sıfırlama | Hazır |
+| Tester proje listesini gerçek API'den alma | Hazır |
+| Tester ortak görev / son tarih özeti | Temel hazır |
+| Tester güncel build bilgisi | Temel hazır |
+| Tester bilinen sorun çözüm oranı | Temel hazır |
+| Hata yaşam döngüsü | Temel hazır |
+| Bug event geçmişi | Temel hazır |
+| Türkçe hata raporu penceresi | Hazır |
+| Video zaman kodu girişi | Hazır |
+| Bug video/görsel evidence upload | Uçtan uca temel hazır |
+| Evidence SHA-256 ve boyut kaydı | Hazır |
+| Video upload duplicate-safe tekrar deneme | Hazır |
+| Yeniden test veri modeli | Hazır |
+| Tester bekleyen yeniden test listesi | Hazır |
+| Tester yeniden test sonucu | Hazır |
+| Tester yeniden test video upload | Hazır |
+| Başarısız yeniden testin çalışma kuyruğuna dönüşü | Hazır |
+| Başarılı yeniden testin admin onayı olmadan kapanmaması | Hazır |
+| Yönetim Merkezi gerçek proje listesi | Hazır |
+| Yönetim Merkezi temel proje analytics özeti | Hazır |
+| Yönetim Merkezi dinamik çözüm çubuğu | Hazır |
 | Build metadata modeli | Temel hazır |
-| Shared task modeli | Temel hazır |
-| Bug lifecycle | Temel hazır |
-| Bug event history | Temel hazır |
-| Retest modeli | Temel hazır |
-| Analytics summary temeli | Temel hazır |
-| Notification veri modeli | Temel hazır |
-| Release veri modeli | Temel hazır |
-| Purge veri modeli | Temel hazır |
 | HF Storage Bucket adapter | Temel hazır |
-| Build upload/download/archive API | Temel hazır |
-| Tester WPF shell | Derleniyor / temel UI hazır |
-| Admin WPF shell | Derleniyor / temel UI hazır |
-| Launcher | Derleniyor / update temeli hazır |
-| Device credential helper | Temel hazır |
-| Device enrollment uçtan uca | Geliştirilecek |
-| Video evidence upload UI/API | Geliştirilecek |
-| Retest gerçek UI/API bağlantısı | Geliştirilecek |
+| Build upload/download/archive backend API | Temel hazır |
+| Tester build indirme masaüstü akışı | Geliştirilecek |
+| Developer Build Center masaüstü upload akışı | Geliştirilecek |
+| Admin bug detay + video oynatıcı | Geliştirilecek |
+| Admin yeniden test oluşturma UI | Geliştirilecek |
+| Ortak görev ayrıntı ekranı | Geliştirilecek |
+| Çoklu proje arasında zengin tester gezinmesi | Geliştirilecek |
+| Notification veri modeli | Temel hazır |
 | WebSocket anlık bildirim | Geliştirilecek |
+| MUST READ acknowledge akışı | Geliştirilecek |
 | Derin analytics drill-down | Geliştirilecek |
-| Build Center tam masaüstü akışı | Geliştirilecek |
+| Tester analytics | Geliştirilecek |
+| Build analytics | Geliştirilecek |
+| Release veri modeli | Temel hazır |
+| Sabit launcher + SHA-256 update temeli | Hazır |
 | Client release yayın pipeline | Geliştirilecek |
 | PostgreSQL migration / Alembic | Geliştirilecek |
+| Purge veri modeli | Temel hazır |
 | İki admin onaylı purge executor | Geliştirilecek |
 | Production Hugging Face Space deployment | Geliştirilecek |
 
 ---
 
-# 28. Yakın dönem geliştirme planı
+# 32. Yakın dönem geliştirme planı
 
-Öncelik sırası:
+Tamamlanan cihaz/video/tester-retest temellerinden sonra ana sıra:
 
-1. Tam Türkçe UI ve merkezi durum/metin çeviri katmanı.
-2. Device enrollment + güvenli cihaz credential akışı.
-3. Tester bug rapor formu.
-4. Video evidence upload.
-5. Video timestamp işaretleme.
-6. Admin bug detail/video player.
-7. Shared task gerçek API bağlantısı.
-8. Retest request ve tester retest akışı.
-9. Build Center tam upload/download/installation akışı.
-10. Bildirim ve WebSocket sistemi.
-11. MUST READ duyuru akışı.
-12. Analytics drill-down endpointleri.
-13. Tester analytics.
-14. Build analytics ve karşılaştırma.
-15. Release publishing pipeline.
-16. PostgreSQL/Alembic migration.
-17. Güvenli project close/purge executor.
-18. Production deployment.
+1. Yönetim Merkezi hata listesi ve bug detay ekranını gerçek API'ye bağlamak.
+2. Admin video oynatıcı ve rapordaki zaman koduna atlama.
+3. Admin bug durum/root cause değişiklik ekranı.
+4. Admin yeniden test oluşturma ekranı ve çoklu tester seçimi.
+5. Ortak görev oluşturma/düzenleme UI'sı.
+6. Görev panelinde ortak tester görünümü ve aktivite akışı.
+7. Developer Build Center gerçek dosya yükleme akışı.
+8. Admin Candidate → Güncel Test Sürümü yayın akışı.
+9. Tester test sürümü indirme ve kurulum talimatı ekranı.
+10. Build download/installed audit eventlerini istemciye bağlamak.
+11. Bildirim API'si ve WebSocket fan-out.
+12. Okunması zorunlu duyuru receipt akışı.
+13. Windows system tray bildirimleri.
+14. Analytics drill-down endpointleri.
+15. Bug türü / Mission / build / retest grafik ekranları.
+16. Tester kalite istatistikleri.
+17. Build karşılaştırma ve regression analizi.
+18. İstemci release yayınlama pipeline'ı.
+19. PostgreSQL + Alembic migration.
+20. İki farklı admin onaylı kalıcı proje silme yürütücüsü.
+21. Production Hugging Face Space / servis deployment.
 
 ---
 
-# 29. Terimler
+# 33. Terimler sözlüğü
 
-## Project
+## Project / Proje
 
-Sistem üzerinde yönetilen oyun/mod/test projesi.
+Sistem üzerinde bağımsız yönetilen oyun, mod veya QA çalışması.
 
 ## Section
 
-Mission, Chapter, Episode veya Level gibi proje içi bölüm.
+Mission, Chapter, Episode, Level gibi proje içi bölüm.
 
-## Build
+## Build / Test Sürümü
 
-Testerların üzerinde test yaptığı oyun/mod sürümü.
+Testerların belirli bir test görevinde kullandığı oyun/mod/dublaj paketi sürümü.
 
-## Candidate Build
+## Candidate / Aday Test Sürümü
 
-Developer tarafından yüklenmiş fakat henüz admin tarafından genel test için onaylanmamış build.
+Developer tarafından yüklenmiş ancak henüz admin tarafından genel tester kullanımına açılmamış sürüm.
 
-## Current Test Build
+## Current / Güncel Test Sürümü
 
-Adminin testerların kullanması için aktif olarak yayınladığı build.
+Admin tarafından o proje için testerların kullanması amacıyla aktif yayınlanan sürüm.
 
-## Shared Task
+## Shared Task / Ortak Görev
 
-Aynı test görevinin birden fazla tester tarafından ortak yürütülen tek kaydı.
+Aynı test görevinin birden fazla tester tarafından tek ortak kayıt üzerinden yürütülmesi.
 
-## Bug Report
+## Bug Report / Hata Raporu
 
-Tester tarafından oluşturulmuş hata kaydı.
+Tester tarafından gönderilen sorun kaydı.
 
-## Evidence
+## Evidence / Kanıt
 
-Bug veya retesti destekleyen video/görsel dosya.
+Bug veya yeniden test sonucunu destekleyen video/görsel dosya.
 
-## Retest
+## Reproduction / Tekrar Edilebilirlik
 
-Bir düzeltmenin belirli build üzerinde tekrar kontrol edilmesi.
+Sorunun kaç denemenin kaçında görüldüğü.
+
+## Retest / Yeniden Test
+
+Düzeltildiği düşünülen bir sorunun belirli build üzerinde tekrar kontrol edilmesi.
 
 ## Fix Candidate
 
-Developerın belirli bir buildde düzeltildiğini düşündüğü ve retest edilmesini hedeflediği bug.
+Developerın belirli buildde düzeltilmiş olması gerektiğini bildirdiği bug.
 
-## Reopened / Regression
+## Reopened / Yeniden Açıldı
 
-Daha önce çözüldüğü düşünülen bir sorunun tekrar görülmesi.
+Daha önce kapatılan sorunun yeniden ortaya çıkması.
+
+## Regression
+
+Yeni değişiklik nedeniyle eski davranışın bozulması veya çözülmüş problemin tekrar ortaya çıkması.
 
 ## Audit Event
 
 Sistemde gerçekleşmiş önemli bir işlemin tarihsel kaydı.
 
-## Purge
+## Device Enrollment / Cihaz Eşleştirmesi
 
-Bir projenin dosya ve runtime verilerinin güvenlik kontrollerinden sonra kalıcı olarak kaldırılması.
+Önceden oluşturulmuş kullanıcı hesabının belirli bir istemci kurulumuyla güvenli olarak eşleştirilmesi.
+
+## Purge / Kalıcı Silme
+
+Bir projenin dosya ve çalışma verilerinin geri alınamayacak biçimde, güvenlik kontrollerinden sonra silinmesi.
 
 ---
 
-## Son not
+# Son not
 
-Bu platformun başarısı yalnızca çok fazla özellik sunmasına bağlı değildir.
+Bu platformun başarısı yalnız çok fazla özellik içermesine bağlı değildir.
 
 Asıl hedef:
 
-- tester için kolay,
-- admin için görünür,
-- developer için kullanışlı,
+- tester için son derece kolay,
+- admin için son derece görünür,
+- developer için pratik,
 - veri açısından izlenebilir,
 - güvenlik açısından kontrollü,
-- proje bittikten sonra yönetilebilir
+- çoklu proje açısından ölçeklenebilir,
+- proje tamamlandığında yönetilebilir
 
 bir QA süreci oluşturmaktır.
 
-DmC: Devil May Cry Türkçe Dublaj projesi bu sistemin ilk gerçek kullanım alanıdır; ancak altyapının uzun vadeli amacı birden fazla oyun ve mod projesinin QA süreçlerini aynı uygulama üzerinden düzenli biçimde yönetebilmektir.
+DmC: Devil May Cry Türkçe Dublaj projesi sistemin ilk gerçek kullanım alanıdır. Ancak altyapının uzun vadeli amacı aynı uygulamalar üzerinden farklı oyun ve mod projelerinin test süreçlerini ortak bir kalite yönetim standardıyla yürütebilmektir.
