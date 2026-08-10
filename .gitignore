@@ -1,0 +1,41 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+
+# Local data
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+artifacts/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+publish/
+dist/
+release/
