@@ -106,6 +106,51 @@ jobs:
             Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
           }
 
+      - name: Tester ve Yönetim Merkezi açılış smoke testi
+        shell: pwsh
+        env:
+          GAME_QA_PACKAGED_TEST: '1'
+          GAME_QA_PORT: '7860'
+          GAME_QA_API: 'http://127.0.0.1:7860/'
+        run: |
+          Remove-Item "$env:LOCALAPPDATA/GameQaClient/crash.log" -Force -ErrorAction SilentlyContinue
+          Remove-Item "$env:LOCALAPPDATA/GameQaAdmin/crash.log" -Force -ErrorAction SilentlyContinue
+
+          $server = Start-Process -FilePath "$pwd/artifacts/Server/GameQaServer/GameQaServer.exe" -PassThru -WindowStyle Hidden
+          $tester = $null
+          $admin = $null
+          try {
+            $healthy = $false
+            for ($i = 0; $i -lt 80; $i++) {
+              try {
+                $health = Invoke-RestMethod -Uri 'http://127.0.0.1:7860/health' -TimeoutSec 2
+                if ($health.status -eq 'ok') { $healthy = $true; break }
+              } catch {}
+              Start-Sleep -Milliseconds 500
+            }
+            if (-not $healthy) { throw 'UI smoke testi için QA backend başlatılamadı.' }
+
+            $tester = Start-Process -FilePath "$pwd/artifacts/Tester/DmC.Qa.Tester.exe" -PassThru
+            $admin = Start-Process -FilePath "$pwd/artifacts/Admin/DmC.Qa.Admin.exe" -PassThru
+            Start-Sleep -Seconds 10
+
+            $tester.Refresh()
+            $admin.Refresh()
+            if ($tester.HasExited) {
+              if (Test-Path "$env:LOCALAPPDATA/GameQaClient/crash.log") { Get-Content "$env:LOCALAPPDATA/GameQaClient/crash.log" }
+              throw "Tester uygulaması açılış smoke testinde erken kapandı. ExitCode=$($tester.ExitCode)"
+            }
+            if ($admin.HasExited) {
+              if (Test-Path "$env:LOCALAPPDATA/GameQaAdmin/crash.log") { Get-Content "$env:LOCALAPPDATA/GameQaAdmin/crash.log" }
+              throw "Yönetim Merkezi açılış smoke testinde erken kapandı. ExitCode=$($admin.ExitCode)"
+            }
+          }
+          finally {
+            if ($tester -and -not $tester.HasExited) { Stop-Process -Id $tester.Id -Force -ErrorAction SilentlyContinue }
+            if ($admin -and -not $admin.HasExited) { Stop-Process -Id $admin.Id -Force -ErrorAction SilentlyContinue }
+            Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
+          }
+
       - name: Test verisini paketten temizle
         shell: pwsh
         run: Remove-Item -Recurse -Force artifacts/Server/GameQaServer/test-data -ErrorAction SilentlyContinue
