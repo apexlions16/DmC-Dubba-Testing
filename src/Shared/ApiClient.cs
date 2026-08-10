@@ -83,6 +83,44 @@ public sealed class QaApiClient
                ?? [];
     }
 
+    public async Task<IReadOnlyList<RetestAssignment>> GetMyRetestsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _http.GetAsync("retests/mine", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<List<RetestAssignment>>(_json, cancellationToken)
+               ?? [];
+    }
+
+    public async Task<RetestSubmitResponse> SubmitRetestAsync(
+        string retestRequestId,
+        string testedBuildId,
+        RetestResult result,
+        string comment,
+        CancellationToken cancellationToken = default)
+    {
+        var technicalResult = result switch
+        {
+            RetestResult.Passed => "passed",
+            RetestResult.Failed => "failed",
+            _ => "uncertain"
+        };
+
+        using var response = await _http.PostAsJsonAsync(
+            $"retests/{retestRequestId}/submit",
+            new
+            {
+                result = technicalResult,
+                tested_build_id = testedBuildId,
+                comment
+            },
+            _json,
+            cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<RetestSubmitResponse>(_json, cancellationToken)
+               ?? throw new QaApiException("Yeniden test sonucu kaydedilemedi.");
+    }
+
     public async Task<BuildSummary?> GetCurrentBuildAsync(
         string projectId,
         CancellationToken cancellationToken = default)
