@@ -17,11 +17,11 @@ public static class TurkishUi
             ["new"] = "Yeni",
             ["acknowledged"] = "İncelendi",
             ["in_progress"] = "Üzerinde Çalışılıyor",
-            ["retest_required"] = "Retest Bekliyor",
+            ["retest_required"] = "Yeniden Test Bekliyor",
             ["resolved"] = "Çözüldü",
             ["on_hold"] = "Beklemede",
             ["duplicate"] = "Tekrar Rapor",
-            ["not_a_bug"] = "Bug Değil",
+            ["not_a_bug"] = "Hata Değil",
             ["wont_fix"] = "Düzeltilmeyecek",
             ["reopened"] = "Yeniden Açıldı",
             ["open"] = "Açık",
@@ -32,12 +32,12 @@ public static class TurkishUi
             ["purge_pending"] = "Kalıcı Silme Bekliyor",
             ["purged"] = "Kalıcı Olarak Silindi",
             ["uploading"] = "Yükleniyor",
-            ["candidate"] = "Aday Build",
-            ["current"] = "Güncel Test Build'i",
-            ["superseded"] = "Yerine Yeni Build Geldi",
+            ["candidate"] = "Aday Test Sürümü",
+            ["current"] = "Güncel Test Sürümü",
+            ["superseded"] = "Yerine Yeni Sürüm Geldi",
             ["archived"] = "Arşivlendi",
             ["requested"] = "Talep Edildi",
-            ["second_admin_approved"] = "İkinci Admin Onayladı",
+            ["second_admin_approved"] = "İkinci Yönetici Onayladı",
             ["running"] = "İşleniyor",
             ["failed"] = "Başarısız",
             ["passed"] = "Başarılı",
@@ -47,10 +47,10 @@ public static class TurkishUi
     private static readonly IReadOnlyDictionary<string, string> RoleTranslations =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["tester"] = "Tester",
-            ["developer"] = "Developer",
-            ["admin"] = "Admin",
-            ["super_admin"] = "Süper Admin"
+            ["tester"] = "Test Ekibi Üyesi",
+            ["developer"] = "Geliştirici",
+            ["admin"] = "Yönetici",
+            ["super_admin"] = "Süper Yönetici"
         };
 
     private static readonly IReadOnlyDictionary<string, string> SeverityTranslations =
