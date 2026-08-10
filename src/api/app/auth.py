@@ -16,8 +16,8 @@ DB = Annotated[Session, Depends(get_db)]
 
 
 def _credential_hash(credential: str) -> str:
-    pepper = settings.device_credential_pepper or "development-only-pepper"
-    return hashlib.sha256(f"{pepper}:{credential}".encode()).hexdigest()
+    secret = settings.device_credential_secret or "development-only-secret"
+    return hashlib.sha256(f"{secret}:{credential}".encode()).hexdigest()
 
 
 def issue_device_credential() -> tuple[str, str]:
