@@ -1,0 +1,16 @@
+<Application x:Class="DmC.Qa.Admin.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#111318" />
+        <SolidColorBrush x:Key="CardBrush" Color="#1D2027" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#A7AFBC" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#D32F2F" />
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="Margin" Value="0,4,8,4" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </Application.Resources>
+</Application>
