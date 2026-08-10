@@ -21,21 +21,28 @@ public partial class App : Application
         {
             apiBaseUrl += "/";
         }
+        var baseUri = new Uri(apiBaseUrl);
 
         var api = new QaApiClient(new HttpClient
         {
-            BaseAddress = new Uri(apiBaseUrl),
+            BaseAddress = baseUri,
             Timeout = TimeSpan.FromMinutes(30)
         });
 
         var login = new AdminLoginWindow(api);
-        if (login.ShowDialog() != true || login.SignedInUser is null)
+        if (login.ShowDialog() != true
+            || login.SignedInUser is null
+            || string.IsNullOrWhiteSpace(login.DeviceId)
+            || string.IsNullOrWhiteSpace(login.DeviceCredential))
         {
             Shutdown();
             return;
         }
 
-        var mainWindow = new MainWindow(api, login.SignedInUser);
+        var platformApi = new PlatformApiClient(baseUri);
+        platformApi.SetDeviceCredential(login.DeviceId, login.DeviceCredential);
+
+        var mainWindow = new MainWindow(api, platformApi, login.SignedInUser);
         MainWindow = mainWindow;
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         mainWindow.Show();
