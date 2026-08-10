@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse
+
 from . import main as main_module
 from .admin_api import router as admin_router
 from .auth import get_current_user as get_device_current_user
@@ -32,6 +35,25 @@ app.include_router(release_router)
 app.include_router(tester_router)
 
 _original_lifespan = app.router.lifespan_context
+
+_LEGACY_ERROR_TRANSLATIONS = {
+    "Missing user identity": "Kullanıcı kimliği bulunamadı.",
+    "Unknown or disabled user": "Kullanıcı bulunamadı veya hesap devre dışı.",
+    "Insufficient role": "Bu işlem için yeterli yetkiniz yok.",
+    "Bootstrap is disabled or key is invalid": "İlk yönetici oluşturma kapalı veya anahtar geçersiz.",
+}
+
+
+@app.exception_handler(HTTPException)
+async def turkish_http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
+    detail = exc.detail
+    if isinstance(detail, str):
+        detail = _LEGACY_ERROR_TRANSLATIONS.get(detail, detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": detail},
+        headers=exc.headers,
+    )
 
 
 @asynccontextmanager
