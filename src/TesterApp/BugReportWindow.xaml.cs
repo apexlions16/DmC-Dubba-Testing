@@ -84,7 +84,11 @@ public partial class BugReportWindow : Window
 
     private async void SubmitButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_createdBug is null && !TryValidateForm(out var attempts, out var hits, out var timestampSeconds))
+        int? attempts = null;
+        int? hits = null;
+        double? timestampSeconds = null;
+
+        if (_createdBug is null && !TryValidateForm(out attempts, out hits, out timestampSeconds))
         {
             return;
         }
