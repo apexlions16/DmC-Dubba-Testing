@@ -29,6 +29,8 @@ public partial class AdminLoginWindow : Window
     }
 
     public CurrentUserSummary? SignedInUser { get; private set; }
+    public string? DeviceId { get; private set; }
+    public string? DeviceCredential { get; private set; }
 
     private void LoadState()
     {
@@ -81,6 +83,8 @@ public partial class AdminLoginWindow : Window
                 return;
             }
 
+            DeviceId = _state.DeviceId;
+            DeviceCredential = credential;
             CompleteLogin(user);
         }
         catch (QaApiException ex)
@@ -134,6 +138,8 @@ public partial class AdminLoginWindow : Window
                 return;
             }
 
+            DeviceId = enrollment.DeviceId;
+            DeviceCredential = enrollment.Credential;
             CompleteLogin(user);
         }
         catch (QaApiException ex)
@@ -170,6 +176,8 @@ public partial class AdminLoginWindow : Window
     {
         _state.DeviceId = null;
         _state.ProtectedCredential = null;
+        DeviceId = null;
+        DeviceCredential = null;
         SaveState();
     }
 
