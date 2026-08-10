@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -95,7 +95,9 @@ def set_bug_status(
     if previous == new_status:
         return
     if not force and new_status not in ALLOWED_TRANSITIONS.get(previous, set()):
-        raise ValueError(f"Invalid bug transition: {previous.value} -> {new_status.value}")
+        raise ValueError(
+            f"Bu hata durumu doğrudan değiştirilemez: {previous.value} → {new_status.value}"
+        )
 
     bug.status = new_status
     if root_cause is not None:
@@ -198,7 +200,7 @@ def submit_retest_result(
         )
     )
     if existing:
-        raise ValueError("This tester already submitted a result for this retest request")
+        raise ValueError("Bu yeniden test için daha önce sonuç gönderdiniz.")
 
     assigned = db.scalar(
         select(models.RetestAssignee).where(
@@ -207,7 +209,7 @@ def submit_retest_result(
         )
     )
     if not assigned:
-        raise PermissionError("Tester is not assigned to this retest")
+        raise PermissionError("Bu yeniden test size atanmadı.")
 
     result = models.RetestResult(
         retest_request_id=request.id,
@@ -221,7 +223,7 @@ def submit_retest_result(
 
     bug = db.get(models.BugReport, request.bug_report_id)
     if bug is None:
-        raise ValueError("Bug not found")
+        raise ValueError("Yeniden teste bağlı hata raporu bulunamadı.")
 
     append_bug_event(
         db,
@@ -233,15 +235,15 @@ def submit_retest_result(
         metadata_json={"retest_request_id": request.id, "result": result_type.value},
     )
 
-    # A single failure is enough to reopen work. Passed results never auto-resolve;
-    # final resolution is intentionally an admin decision.
+    # Tek bir başarısız sonuç sorunu yeniden çalışma kuyruğuna döndürmek için yeterlidir.
+    # Başarılı sonuçlar hatayı otomatik kapatmaz; son Çözüldü kararı yöneticidedir.
     if result_type == models.RetestResultType.FAILED:
         set_bug_status(
             db,
             bug,
             tester_id,
             models.BugStatus.IN_PROGRESS,
-            note="Retest failed; returned to work queue",
+            note="Yeniden test başarısız oldu; sorun tekrar çalışma kuyruğuna alındı.",
             build_id=tested_build_id,
         )
 
