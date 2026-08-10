@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     hf_token: str | None = None
     bootstrap_key: str | None = None
     device_credential_pepper: str | None = None
+    max_evidence_upload_bytes: int = 20 * 1024 * 1024 * 1024
 
 
 settings = Settings()
