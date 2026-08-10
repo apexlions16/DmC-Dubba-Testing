@@ -1,9 +1,11 @@
 using System.IO;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using DmC.Qa.Shared;
 
@@ -14,17 +16,24 @@ public partial class MainWindow : Window
     private static readonly string StateDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "GameQaClient");
-
     private static readonly string StateFile = Path.Combine(StateDirectory, "client.json");
     private static readonly byte[] CredentialEntropy = Encoding.UTF8.GetBytes("GameQaClient.DeviceCredential.v1");
 
     private readonly QaApiClient _api;
+    private readonly PlatformApiClient _platformApi;
+    private readonly CancellationTokenSource _notificationCts = new();
     private ClientState _state = new();
     private bool _hasAuthenticatedCredential;
+    private bool _blockingMustRead;
     private ProjectSummary? _currentProject;
     private TaskSummary? _currentTask;
+    private SharedTaskDetail? _sharedTask;
     private BuildSummary? _currentBuild;
+    private CurrentBuildDetail? _currentBuildDetail;
     private List<RetestAssignment> _pendingRetests = [];
+    private List<InboxNotificationItem> _notifications = [];
+    private string? _lastPopupNotificationId;
+    private Button? _buildDownloadButton;
 
     public MainWindow()
     {
@@ -35,23 +44,27 @@ public partial class MainWindow : Window
         {
             apiBaseUrl += "/";
         }
-
+        var baseUri = new Uri(apiBaseUrl);
         _api = new QaApiClient(new HttpClient
         {
-            BaseAddress = new Uri(apiBaseUrl),
-            Timeout = TimeSpan.FromMinutes(5)
+            BaseAddress = baseUri,
+            Timeout = TimeSpan.FromMinutes(30)
         });
+        _platformApi = new PlatformApiClient(baseUri);
 
+        ProjectsList.DisplayMemberPath = nameof(ProjectSummary.Name);
+        ProjectsList.SelectionChanged += ProjectsList_SelectionChanged;
+        AttachShellButtons();
         ReportBugButton.IsEnabled = false;
         RetestButton.IsEnabled = false;
         LoadLocalProfile();
         Loaded += MainWindow_Loaded;
+        Closed += MainWindow_Closed;
     }
 
     private void LoadLocalProfile()
     {
         Directory.CreateDirectory(StateDirectory);
-
         if (File.Exists(StateFile))
         {
             try
@@ -69,7 +82,6 @@ public partial class MainWindow : Window
             _state.InstallationId = Guid.NewGuid().ToString("N");
             SaveState();
         }
-
         DisplayNameInput.Text = _state.DisplayName;
 
         if (string.IsNullOrWhiteSpace(_state.DeviceId) || string.IsNullOrWhiteSpace(_state.ProtectedCredential))
@@ -91,7 +103,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        _api.SetDeviceCredential(_state.DeviceId, credential);
+        ApplyCredential(_state.DeviceId, credential);
         _hasAuthenticatedCredential = true;
         TesterNameText.Text = _state.DisplayName;
         EnrollmentOverlay.Visibility = Visibility.Collapsed;
@@ -99,18 +111,15 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        if (!_hasAuthenticatedCredential)
+        if (_hasAuthenticatedCredential)
         {
-            return;
+            await ValidateSessionAndLoadAsync();
         }
-
-        await ValidateSessionAndLoadAsync();
     }
 
     private async Task ValidateSessionAndLoadAsync()
     {
         SetConnectionState("● Bağlanıyor", "#F9A825");
-
         try
         {
             var me = await _api.GetCurrentUserAsync();
@@ -118,8 +127,9 @@ public partial class MainWindow : Window
             SaveState();
             TesterNameText.Text = me.DisplayName;
             EnrollmentOverlay.Visibility = Visibility.Collapsed;
-
             await LoadDashboardAsync();
+            await LoadNotificationsAsync(showPopup: false);
+            _ = WatchNotificationsAsync(_notificationCts.Token);
             SetConnectionState("● Bağlı", "#43A047");
         }
         catch (QaApiException ex)
@@ -144,56 +154,70 @@ public partial class MainWindow : Window
 
     private async Task LoadDashboardAsync()
     {
+        var selectedId = _currentProject?.Id;
         var projects = await _api.GetProjectsAsync();
-        var tasks = await _api.GetMyTasksAsync();
         _pendingRetests = (await _api.GetMyRetestsAsync()).ToList();
         RetestCount.Text = _pendingRetests.Count.ToString(TurkishUi.Culture);
-        RetestButton.IsEnabled = _pendingRetests.Count > 0;
 
-        ProjectsList.Items.Clear();
-        foreach (var projectItem in projects)
-        {
-            ProjectsList.Items.Add(projectItem.Name);
-        }
-
+        ProjectsList.ItemsSource = projects;
         if (projects.Count == 0)
         {
             _currentProject = null;
             _currentTask = null;
             _currentBuild = null;
-            ReportBugButton.IsEnabled = false;
+            _currentBuildDetail = null;
             ProjectTitle.Text = "Henüz bir projeye atanmadınız";
-            TaskTitle.Text = "Aktif ortak görev yok";
-            TaskDeadline.Text = "—";
-            BuildVersion.Text = "—";
-            BuildTitle.Text = "Yayınlanmış test sürümü yok";
-            BuildPublished.Text = "—";
-            ResolutionPercent.Text = "—";
+            ClearProjectPanel();
+            UpdateActionAvailability();
             return;
         }
 
-        var project = projects[0];
+        var selected = projects.FirstOrDefault(item => item.Id == selectedId) ?? projects[0];
+        ProjectsList.SelectedItem = selected;
+        await LoadProjectAsync(selected);
+    }
+
+    private async void ProjectsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ProjectsList.SelectedItem is ProjectSummary project && _currentProject?.Id != project.Id)
+        {
+            try
+            {
+                await LoadProjectAsync(project);
+            }
+            catch (Exception ex) when (ex is QaApiException or HttpRequestException or TaskCanceledException)
+            {
+                SetConnectionState($"● Proje yüklenemedi: {ex.Message}", "#EF5350");
+            }
+        }
+    }
+
+    private async Task LoadProjectAsync(ProjectSummary project)
+    {
         _currentProject = project;
         ProjectTitle.Text = project.Name;
-        ProjectsList.SelectedIndex = 0;
-        ReportBugButton.IsEnabled = true;
+        var tasks = await _api.GetMyTasksAsync();
+        _currentTask = tasks
+            .Where(item => item.ProjectId == project.Id)
+            .OrderBy(item => item.DeadlineAt ?? DateTimeOffset.MaxValue)
+            .FirstOrDefault();
 
-        var task = tasks.FirstOrDefault(item => item.ProjectId == project.Id);
-        _currentTask = task;
-        if (task is null)
+        if (_currentTask is null)
         {
+            _sharedTask = null;
             TaskTitle.Text = "Aktif ortak görev yok";
             TaskDeadline.Text = "Yeni görev atandığında burada görünecek.";
         }
         else
         {
-            TaskTitle.Text = task.Title;
-            TaskDeadline.Text = TurkishUi.Deadline(task.DeadlineAt);
+            _sharedTask = await _platformApi.GetSharedTaskDetailAsync(_currentTask.Id);
+            TaskTitle.Text = _currentTask.Title;
+            TaskDeadline.Text = TurkishUi.Deadline(_currentTask.DeadlineAt);
         }
 
-        var build = await _api.GetCurrentBuildAsync(project.Id);
-        _currentBuild = build;
-        if (build is null)
+        _currentBuild = await _api.GetCurrentBuildAsync(project.Id);
+        _currentBuildDetail = await _platformApi.GetCurrentBuildDetailAsync(project.Id);
+        if (_currentBuildDetail is null)
         {
             BuildVersion.Text = "—";
             BuildTitle.Text = "Yayınlanmış test sürümü yok";
@@ -201,77 +225,140 @@ public partial class MainWindow : Window
         }
         else
         {
-            BuildVersion.Text = build.Version;
-            BuildTitle.Text = build.Title;
-            BuildPublished.Text = build.PublishedAt is null
-                ? "Yayın tarihi belirtilmedi"
-                : $"Yayın: {TurkishUi.Date(build.PublishedAt, includeTime: false)}";
+            BuildVersion.Text = _currentBuildDetail.Version;
+            BuildTitle.Text = _currentBuildDetail.Title;
+            BuildPublished.Text = _currentBuildDetail.PublishedAt is null
+                ? TurkishUi.FileSize(_currentBuildDetail.SizeBytes)
+                : $"Yayın: {TurkishUi.Date(_currentBuildDetail.PublishedAt, false)} • {TurkishUi.FileSize(_currentBuildDetail.SizeBytes)}";
         }
 
         var progress = await _api.GetProjectProgressAsync(project.Id);
-        if (progress is not null)
+        ResolutionPercent.Text = progress is null ? "—" : $"%{progress.ResolutionPercentage:0.#} çözüldü";
+        var reports = await _platformApi.GetMyBugsAsync(project.Id);
+        MyReportsGrid.ItemsSource = reports.Select(item => new
         {
-            ResolutionPercent.Text = $"%{progress.ResolutionPercentage:0.#} çözüldü";
+            item.Key,
+            item.Title,
+            item.BugType,
+            Status = TurkishUi.Status(item.Status)
+        }).ToList();
+        UpdateActionAvailability();
+    }
+
+    private void ClearProjectPanel()
+    {
+        TaskTitle.Text = "Aktif ortak görev yok";
+        TaskDeadline.Text = "—";
+        BuildVersion.Text = "—";
+        BuildTitle.Text = "Yayınlanmış test sürümü yok";
+        BuildPublished.Text = "—";
+        ResolutionPercent.Text = "—";
+        MyReportsGrid.ItemsSource = null;
+    }
+
+    private async Task LoadNotificationsAsync(bool showPopup)
+    {
+        _notifications = (await _platformApi.GetMyNotificationsAsync()).ToList();
+        var mustRead = _notifications.FirstOrDefault(item => item.RequiresAcknowledgement && item.AcknowledgedAt is null);
+        _blockingMustRead = mustRead is not null;
+        MustReadBanner.Visibility = mustRead is null ? Visibility.Collapsed : Visibility.Visible;
+        MustReadBody.Text = mustRead?.Body ?? string.Empty;
+        UpdateActionAvailability();
+
+        if (showPopup)
+        {
+            var newest = _notifications.FirstOrDefault();
+            if (newest is not null && newest.Id != _lastPopupNotificationId)
+            {
+                _lastPopupNotificationId = newest.Id;
+                if (!newest.RequiresAcknowledgement)
+                {
+                    MessageBox.Show(newest.Body, newest.Title, MessageBoxButton.OK,
+                        newest.Severity is "critical" or "warning" ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                }
+            }
+        }
+    }
+
+    private void UpdateActionAvailability()
+    {
+        var projectAvailable = _currentProject is not null;
+        ReportBugButton.IsEnabled = projectAvailable && !_blockingMustRead;
+        RetestButton.IsEnabled = _pendingRetests.Count > 0 && !_blockingMustRead;
+        if (_buildDownloadButton is not null)
+        {
+            _buildDownloadButton.IsEnabled = _currentBuildDetail is not null && !_blockingMustRead;
+        }
+    }
+
+    private async Task WatchNotificationsAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_platformApi.DeviceAuthorization))
+        {
+            return;
+        }
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                using var socket = new ClientWebSocket();
+                socket.Options.SetRequestHeader("Authorization", _platformApi.DeviceAuthorization);
+                await socket.ConnectAsync(_platformApi.NotificationsWebSocketUri(), cancellationToken);
+                var buffer = new byte[4096];
+                while (socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
+                {
+                    var result = await socket.ReceiveAsync(buffer, cancellationToken);
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        break;
+                    }
+                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    if (message.Contains("notifications_refresh", StringComparison.Ordinal))
+                    {
+                        await Dispatcher.InvokeAsync(async () => await LoadNotificationsAsync(showPopup: true));
+                    }
+                }
+            }
+            catch when (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                }
+                catch
+                {
+                    break;
+                }
+            }
         }
     }
 
     private async void ReportBugButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_currentProject is null)
+        if (_currentProject is null || _blockingMustRead)
         {
-            MessageBox.Show(
-                "Hata raporu gönderebilmek için önce bir projeye atanmış olmanız gerekiyor.",
-                "Proje Bulunamadı",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
             return;
         }
-
-        var dialog = new BugReportWindow(_api, _currentProject, _currentTask, _currentBuild)
-        {
-            Owner = this
-        };
-
+        var dialog = new BugReportWindow(_api, _currentProject, _currentTask, _currentBuild) { Owner = this };
         if (dialog.ShowDialog() == true)
         {
-            try
-            {
-                await LoadDashboardAsync();
-            }
-            catch
-            {
-                SetConnectionState("● Rapor gönderildi, özet yenilenemedi", "#F9A825");
-            }
+            await LoadProjectAsync(_currentProject);
         }
     }
 
     private async void RetestButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_pendingRetests.Count == 0)
+        if (_pendingRetests.Count == 0 || _blockingMustRead)
         {
-            MessageBox.Show(
-                "Şu anda sizden beklenen bir yeniden test bulunmuyor.",
-                "Yeniden Test",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
             return;
         }
-
-        var dialog = new RetestWindow(_api, _pendingRetests)
-        {
-            Owner = this
-        };
-
+        var projectRetests = _currentProject is null
+            ? _pendingRetests
+            : _pendingRetests.Where(item => true).ToList();
+        var dialog = new RetestWindow(_api, projectRetests) { Owner = this };
         if (dialog.ShowDialog() == true)
         {
-            try
-            {
-                await LoadDashboardAsync();
-            }
-            catch
-            {
-                SetConnectionState("● Yeniden test kaydedildi, özet yenilenemedi", "#F9A825");
-            }
+            await LoadDashboardAsync();
         }
     }
 
@@ -283,36 +370,29 @@ public partial class MainWindow : Window
             EnrollmentError.Text = "Lütfen ekipte kullanılan adınızı yazın.";
             return;
         }
-
         EnrollButton.IsEnabled = false;
         EnrollmentError.Text = string.Empty;
         SetConnectionState("● Cihaz eşleştiriliyor", "#F9A825");
-
         _state.DisplayName = displayName;
         if (string.IsNullOrWhiteSpace(_state.InstallationId))
         {
             _state.InstallationId = Guid.NewGuid().ToString("N");
         }
         SaveState();
-
         try
         {
-            var enrollment = await _api.EnrollDeviceAsync(
-                displayName,
-                _state.InstallationId,
-                Environment.MachineName);
-
+            var enrollment = await _api.EnrollDeviceAsync(displayName, _state.InstallationId, Environment.MachineName);
             _state.DisplayName = enrollment.DisplayName;
             _state.DeviceId = enrollment.DeviceId;
             _state.ProtectedCredential = ProtectCredential(enrollment.Credential);
             SaveState();
-
-            _api.SetDeviceCredential(enrollment.DeviceId, enrollment.Credential);
+            ApplyCredential(enrollment.DeviceId, enrollment.Credential);
             _hasAuthenticatedCredential = true;
             TesterNameText.Text = enrollment.DisplayName;
             EnrollmentOverlay.Visibility = Visibility.Collapsed;
-
             await LoadDashboardAsync();
+            await LoadNotificationsAsync(showPopup: false);
+            _ = WatchNotificationsAsync(_notificationCts.Token);
             SetConnectionState("● Bağlı", "#43A047");
         }
         catch (QaApiException ex)
@@ -322,18 +402,145 @@ public partial class MainWindow : Window
         }
         catch (HttpRequestException)
         {
-            EnrollmentError.Text = "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.";
+            EnrollmentError.Text = "Sunucuya ulaşılamadı. QA sunucusunun çalıştığını kontrol edin.";
             SetConnectionState("● Bağlantı yok", "#EF5350");
-        }
-        catch (TaskCanceledException)
-        {
-            EnrollmentError.Text = "Sunucu zamanında yanıt vermedi. Lütfen tekrar deneyin.";
-            SetConnectionState("● Sunucu yanıt vermiyor", "#EF5350");
         }
         finally
         {
             EnrollButton.IsEnabled = true;
         }
+    }
+
+    private void AttachShellButtons()
+    {
+        _buildDownloadButton = FindButtons("Test Sürümünü İndir").FirstOrDefault();
+        if (_buildDownloadButton is not null)
+        {
+            _buildDownloadButton.Click += BuildDownloadButton_Click;
+        }
+        foreach (var button in FindButtons("Kurulum Talimatları")) button.Click += InstallInstructionsButton_Click;
+        foreach (var button in FindButtons("Bildirimler")) button.Click += NotificationsButton_Click;
+        foreach (var button in FindButtons("Görevi Aç")) button.Click += SharedTaskButton_Click;
+        foreach (var button in FindButtons("Okudum")) button.Click += MustReadAcknowledge_Click;
+    }
+
+    private async void BuildDownloadButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentProject is null || _currentBuildDetail is null || _blockingMustRead)
+        {
+            return;
+        }
+        var fileName = string.IsNullOrWhiteSpace(_currentBuildDetail.OriginalFilename)
+            ? $"test-build-{_currentBuildDetail.Version}.bin"
+            : _currentBuildDetail.OriginalFilename;
+        var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "GameQA", _currentProject.Name);
+        var destination = Path.Combine(downloads, fileName);
+        try
+        {
+            _buildDownloadButton!.IsEnabled = false;
+            var progress = new Progress<double>(value => SetConnectionState($"● Test sürümü indiriliyor %{value:0}", "#42A5F5"));
+            await _platformApi.DownloadBuildAsync(_currentProject.Id, _currentBuildDetail.Id, destination, _currentBuildDetail.Sha256, progress);
+            SetConnectionState("● Test sürümü doğrulandı", "#43A047");
+            var result = MessageBox.Show(
+                $"Test sürümü indirildi ve SHA-256 doğrulaması tamamlandı.\n\nKonum:\n{destination}\n\nKurulum Talimatları:\n{_currentBuildDetail.InstallationInstructions}\n\nKurulumu tamamladınız mı?",
+                $"{_currentBuildDetail.Version} İndirildi",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+            if (result == MessageBoxResult.Yes)
+            {
+                await _platformApi.RecordBuildEventAsync(_currentProject.Id, _currentBuildDetail.Id, "installed");
+            }
+        }
+        catch (Exception ex) when (ex is QaApiException or HttpRequestException or IOException)
+        {
+            MessageBox.Show(ex.Message, "Test Sürümü İndirilemedi", MessageBoxButton.OK, MessageBoxImage.Error);
+            SetConnectionState("● İndirme başarısız", "#EF5350");
+        }
+        finally
+        {
+            UpdateActionAvailability();
+        }
+    }
+
+    private void InstallInstructionsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentBuildDetail is null)
+        {
+            MessageBox.Show("Henüz yayınlanmış güncel test sürümü yok.", "Kurulum Talimatları", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        MessageBox.Show(
+            $"{_currentBuildDetail.Title}\n\n{_currentBuildDetail.InstallationInstructions}\n\nDeğişiklik Notları:\n{_currentBuildDetail.Changelog}",
+            $"{_currentBuildDetail.Version} • Kurulum Talimatları",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private async void NotificationsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new NotificationWindow(_platformApi) { Owner = this };
+        window.ShowDialog();
+        if (window.AcknowledgementChanged)
+        {
+            await LoadNotificationsAsync(showPopup: false);
+        }
+    }
+
+    private void SharedTaskButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_sharedTask is null)
+        {
+            MessageBox.Show("Şu anda açık bir ortak göreviniz yok.", "Ortak Görev", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        MessageBox.Show(
+            $"{_sharedTask.Title}\n\n{_sharedTask.Description}\n\nEkip:\n{string.Join(" • ", _sharedTask.Assignees)}\n\n{TurkishUi.Deadline(_sharedTask.DeadlineAt)}\nBilinen rapor: {_sharedTask.KnownReportCount}",
+            "Ortak Görev Paneli",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private async void MustReadAcknowledge_Click(object sender, RoutedEventArgs e)
+    {
+        var notification = _notifications.FirstOrDefault(item => item.RequiresAcknowledgement && item.AcknowledgedAt is null);
+        if (notification is null)
+        {
+            return;
+        }
+        try
+        {
+            await _platformApi.AcknowledgeNotificationAsync(notification.Id);
+            await LoadNotificationsAsync(showPopup: false);
+        }
+        catch (QaApiException ex)
+        {
+            MessageBox.Show(ex.Message, "Duyuru Onaylanamadı", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private IEnumerable<Button> FindButtons(string content)
+        => FindVisualChildren<Button>(this).Where(button => Equals(button.Content, content));
+
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T typed) yield return typed;
+            foreach (var nested in FindVisualChildren<T>(child)) yield return nested;
+        }
+    }
+
+    private void ApplyCredential(string deviceId, string credential)
+    {
+        _api.SetDeviceCredential(deviceId, credential);
+        _platformApi.SetDeviceCredential(deviceId, credential);
+    }
+
+    private void MainWindow_Closed(object? sender, EventArgs e)
+    {
+        _notificationCts.Cancel();
+        _notificationCts.Dispose();
     }
 
     private void SetConnectionState(string text, string color)
@@ -345,9 +552,7 @@ public partial class MainWindow : Window
     private void SaveState()
     {
         Directory.CreateDirectory(StateDirectory);
-        File.WriteAllText(
-            StateFile,
-            JsonSerializer.Serialize(_state, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(StateFile, JsonSerializer.Serialize(_state, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static string ProtectCredential(string credential)
