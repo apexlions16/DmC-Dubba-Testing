@@ -25,6 +25,8 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
+            LoadRuntimeTheme();
+
             var mainWindow = new MainWindow();
             MainWindow = mainWindow;
             mainWindow.Show();
@@ -39,6 +41,16 @@ public partial class App : Application
                 MessageBoxImage.Error);
             Shutdown(-1);
         }
+    }
+
+    private void LoadRuntimeTheme()
+    {
+        Resources.MergedDictionaries.Add(new ResourceDictionary
+        {
+            Source = new Uri(
+                "/DmC.Qa.Tester;component/Themes/DarkComboBox.xaml",
+                UriKind.Relative)
+        });
     }
 
     private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
