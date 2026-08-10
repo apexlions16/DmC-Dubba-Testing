@@ -27,6 +27,8 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
+            LoadRuntimeTheme();
+
             var apiBaseUrl = Environment.GetEnvironmentVariable("GAME_QA_API") ?? "http://localhost:7860/";
             if (!apiBaseUrl.EndsWith('/'))
             {
@@ -68,6 +70,16 @@ public partial class App : Application
                 MessageBoxImage.Error);
             Shutdown(-1);
         }
+    }
+
+    private void LoadRuntimeTheme()
+    {
+        Resources.MergedDictionaries.Add(new ResourceDictionary
+        {
+            Source = new Uri(
+                "/DmC.Qa.Admin;component/Themes/DarkComboBox.xaml",
+                UriKind.Relative)
+        });
     }
 
     private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
