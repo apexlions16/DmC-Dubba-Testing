@@ -1,0 +1,17 @@
+<Application x:Class="DmC.Qa.Tester.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#17191D" />
+        <SolidColorBrush x:Key="CardBrush" Color="#22252B" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#A8AFBA" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#E53935" />
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="14,9" />
+            <Setter Property="Margin" Value="0,4,8,4" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </Application.Resources>
+</Application>
