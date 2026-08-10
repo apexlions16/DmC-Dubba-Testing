@@ -100,6 +100,8 @@ class HfBucketStorage:
         self.delete_file(source)
         return destination
 
-    def public_url(self, remote_path: str) -> str:
-        # Public buckets can be read without shipping the write token to clients.
-        return f"https://huggingface.co/datasets/{self.bucket_id}/resolve/main/{remote_path}"
+    def hf_uri(self, remote_path: str) -> str:
+        return f"hf://buckets/{self.bucket_id}/{remote_path}"
+
+    def bucket_browser_url(self) -> str:
+        return f"https://huggingface.co/buckets/{self.bucket_id}"
