@@ -74,7 +74,7 @@ public partial class BugDetailWindow : Window
                 : "Tekrar üretme bilgisi belirtilmedi.";
             TimestampText.Text = _detail.BugTimestampSeconds is null
                 ? "Video zaman kodu belirtilmedi."
-                : $"Hata anı: {TimeSpan.FromSeconds(_detail.BugTimestampSeconds.Value):hh\:mm\:ss\.fff}";
+                : $"Hata anı: {TimeSpan.FromSeconds(_detail.BugTimestampSeconds.Value).ToString(@"hh\:mm\:ss\.fff")}";
 
             StatusPicker.SelectedItem = Statuses.FirstOrDefault(item => item.Value == _detail.Status) ?? Statuses[0];
             RootCausePicker.Text = _detail.RootCause ?? string.Empty;
