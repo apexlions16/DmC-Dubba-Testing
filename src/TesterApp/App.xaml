@@ -3,46 +3,68 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <Color x:Key="WindowColor">#050813</Color>
-        <Color x:Key="PanelColor">#0B1020</Color>
-        <Color x:Key="CardColor">#0E1629</Color>
-        <Color x:Key="CardHoverColor">#13213C</Color>
+        <Color x:Key="PanelColor">#0A1020</Color>
+        <Color x:Key="CardColor">#0D172A</Color>
         <Color x:Key="AccentColor">#2457FF</Color>
-        <Color x:Key="AccentBrightColor">#4777FF</Color>
+        <Color x:Key="AccentBrightColor">#4D7BFF</Color>
 
         <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource WindowColor}" />
         <SolidColorBrush x:Key="SidebarBrush" Color="{StaticResource PanelColor}" />
         <SolidColorBrush x:Key="CardBrush" Color="{StaticResource CardColor}" />
-        <SolidColorBrush x:Key="CardHoverBrush" Color="{StaticResource CardHoverColor}" />
-        <SolidColorBrush x:Key="MutedBrush" Color="#8794AD" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#8A98B3" />
         <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
         <SolidColorBrush x:Key="AccentBrightBrush" Color="{StaticResource AccentBrightColor}" />
-        <SolidColorBrush x:Key="AccentSoftBrush" Color="#242457FF" />
-        <SolidColorBrush x:Key="PanelBorderBrush" Color="#263C6C" />
+        <SolidColorBrush x:Key="AccentSoftBrush" Color="#252457FF" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#28416F" />
         <SolidColorBrush x:Key="SuccessBrush" Color="#35D07F" />
         <SolidColorBrush x:Key="WarningBrush" Color="#FFB84D" />
         <SolidColorBrush x:Key="DangerBrush" Color="#FF5E6C" />
 
         <LinearGradientBrush x:Key="WindowBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#03050B" Offset="0" />
-            <GradientStop Color="#071126" Offset="0.52" />
-            <GradientStop Color="#040711" Offset="1" />
+            <GradientStop Color="#02040A" Offset="0" />
+            <GradientStop Color="#07152F" Offset="0.48" />
+            <GradientStop Color="#050814" Offset="1" />
         </LinearGradientBrush>
 
+        <!-- Gönderilen mikrofon + D kablo logosunun DPI bağımsız vektör karşılığı. -->
+        <DrawingImage x:Key="BrandLogoDrawing">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#2457FF" Geometry="M 24,25 C 24,18 29,13 36,13 L 42,13 C 49,13 54,18 54,25 L 54,34 L 24,34 Z" />
+                    <GeometryDrawing Brush="#2457FF" Geometry="M 26,38 L 52,38 L 52,65 L 43,73 L 43,83 L 35,83 L 35,73 L 26,65 Z" />
+                    <GeometryDrawing Brush="#050813" Geometry="M 28,18 L 50,18 M 27,23 L 51,23 M 26,28 L 52,28" >
+                        <GeometryDrawing.Pen><Pen Brush="#050813" Thickness="2" StartLineCap="Round" EndLineCap="Round" /></GeometryDrawing.Pen>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="Transparent" Geometry="M 58,16 C 84,16 93,29 93,49 C 93,72 80,84 59,84 L 43,84 C 40,84 39,82 39,79 L 39,74">
+                        <GeometryDrawing.Pen><Pen Brush="#2457FF" Thickness="5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" /></GeometryDrawing.Pen>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="Transparent" Geometry="M 58,24 C 78,24 84,34 84,50 C 84,66 76,76 60,76">
+                        <GeometryDrawing.Pen><Pen Brush="#2457FF" Thickness="4" StartLineCap="Round" EndLineCap="Round" /></GeometryDrawing.Pen>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="Transparent" Geometry="M 22,48 L 16,42 L 18,60 L 13,65 M 56,48 L 62,42 L 60,60 L 65,65">
+                        <GeometryDrawing.Pen><Pen Brush="#2457FF" Thickness="3" StartLineCap="Round" EndLineCap="Round" /></GeometryDrawing.Pen>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#2457FF" Geometry="M 59,75 L 69,75 L 69,79 L 59,79 Z" />
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
         <Style TargetType="Window">
-            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI" />
             <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="Icon" Value="{StaticResource BrandLogoDrawing}" />
         </Style>
 
         <Style x:Key="ModernButton" TargetType="Button">
             <Setter Property="Foreground" Value="#F7F9FF" />
-            <Setter Property="Background" Value="#121C33" />
-            <Setter Property="BorderBrush" Value="#263B66" />
+            <Setter Property="Background" Value="#111B31" />
+            <Setter Property="BorderBrush" Value="#2A4271" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="14,10" />
             <Setter Property="Margin" Value="0,4,8,4" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -50,22 +72,42 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="10"
-                                Padding="{TemplateBinding Padding}">
+                                CornerRadius="11"
+                                Padding="{TemplateBinding Padding}"
+                                RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform x:Name="ButtonScale" ScaleX="1" ScaleY="1" />
+                            </Border.RenderTransform>
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#17284A" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#4777FF" />
+                                <Setter TargetName="Chrome" Property="Background" Value="#172A50" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#4D7BFF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Chrome" Property="Opacity" Value="0.78" />
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.76" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Chrome" Property="Opacity" Value="0.38" />
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.35" />
                             </Trigger>
+                            <EventTrigger RoutedEvent="MouseEnter">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="ButtonScale" Storyboard.TargetProperty="ScaleX" To="1.018" Duration="0:0:0.12" />
+                                        <DoubleAnimation Storyboard.TargetName="ButtonScale" Storyboard.TargetProperty="ScaleY" To="1.018" Duration="0:0:0.12" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="MouseLeave">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="ButtonScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.16" />
+                                        <DoubleAnimation Storyboard.TargetName="ButtonScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.16" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -73,62 +115,79 @@
         </Style>
 
         <Style TargetType="Button" BasedOn="{StaticResource ModernButton}" />
-
         <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
             <Setter Property="Background" Value="#2457FF" />
-            <Setter Property="BorderBrush" Value="#4777FF" />
+            <Setter Property="BorderBrush" Value="#5C86FF" />
         </Style>
-
         <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Padding" Value="14,11" />
             <Setter Property="Margin" Value="0,3" />
-            <Setter Property="Foreground" Value="#BAC5DA" />
+            <Setter Property="Foreground" Value="#BAC6DB" />
         </Style>
 
         <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource CardBrush}" />
+            <Setter Property="Background" Value="#D90D172A" />
             <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="CornerRadius" Value="15" />
             <Setter Property="Padding" Value="18" />
+            <Setter Property="Effect">
+                <Setter.Value><DropShadowEffect Color="#001B58" BlurRadius="18" ShadowDepth="4" Opacity="0.26" /></Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="#0A1120" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="CaretBrush" Value="{StaticResource AccentBrightBrush}" />
-            <Setter Property="BorderBrush" Value="#2A3B62" />
+            <Setter Property="BorderBrush" Value="#2B416B" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="10,8" />
             <Setter Property="FontSize" Value="14" />
         </Style>
-
         <Style TargetType="ComboBox">
             <Setter Property="Background" Value="#0A1120" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#2A3B62" />
+            <Setter Property="BorderBrush" Value="#2B416B" />
             <Setter Property="Padding" Value="7" />
         </Style>
-
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="#EAF0FF" />
+            <Setter Property="Padding" Value="11,9" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#16294C" /></Trigger>
+                <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#243E72" /><Setter Property="Foreground" Value="White" /></Trigger>
+            </Style.Triggers>
+        </Style>
         <Style TargetType="DataGrid">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="#EAF0FF" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="RowBackground" Value="#081020" />
             <Setter Property="AlternatingRowBackground" Value="#0B1426" />
-            <Setter Property="HorizontalGridLinesBrush" Value="#192B4E" />
+            <Setter Property="HorizontalGridLinesBrush" Value="#1A2D50" />
             <Setter Property="VerticalGridLinesBrush" Value="Transparent" />
             <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="RowHeight" Value="38" />
         </Style>
-
+        <Style TargetType="DataGridRow">
+            <Setter Property="BorderThickness" Value="0" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#14294C" /></Trigger>
+                <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#1D3A6A" /></Trigger>
+            </Style.Triggers>
+        </Style>
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#101A30" />
             <Setter Property="Foreground" Value="#8FA0BF" />
             <Setter Property="BorderBrush" Value="#1B2B4B" />
-            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Padding" Value="10,9" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
     </Application.Resources>
