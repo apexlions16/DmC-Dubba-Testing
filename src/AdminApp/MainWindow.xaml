@@ -19,7 +19,7 @@
                         <Image Source="Assets/dmc-qa-logo.png" Stretch="Uniform" />
                     </Border>
                     <TextBlock Text="DmC QA Yönetim Merkezi" FontSize="17" FontWeight="Bold" Margin="4,12,4,0" />
-                    <TextBlock Text="YÖNETİCİ / GELİŞTİRİCİ" Foreground="{StaticResource AccentBrightBrush}" FontSize="10" FontWeight="SemiBold" CharacterSpacing="125" Margin="4,2,4,14" />
+                    <TextBlock Text="YÖNETİCİ / GELİŞTİRİCİ" Foreground="{StaticResource AccentBrightBrush}" FontSize="10" FontWeight="SemiBold" Margin="4,2,4,14" />
 
                     <TextBlock Text="PROJE" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" Margin="6,0,6,6" />
                     <ComboBox x:Name="ProjectPicker" Height="38" Margin="0,0,0,14" />
@@ -57,7 +57,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock x:Name="WorkspaceEyebrow" Text="GENEL BAKIŞ" Foreground="#739AFF" FontSize="10" FontWeight="Bold" CharacterSpacing="100" />
+                        <TextBlock x:Name="WorkspaceEyebrow" Text="GENEL BAKIŞ" Foreground="#739AFF" FontSize="10" FontWeight="Bold" />
                         <TextBlock x:Name="ProjectTitle" Text="Proje seçin" FontSize="23" FontWeight="Bold" Margin="0,2,0,0" />
                         <TextBlock x:Name="ProjectStatus" Text="—" Foreground="{StaticResource MutedBrush}" FontSize="11" />
                     </StackPanel>
