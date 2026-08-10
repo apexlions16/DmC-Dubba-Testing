@@ -1,95 +1,98 @@
 <Window x:Class="DmC.Qa.Admin.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Oyun QA Yönetim Merkezi" Height="860" Width="1440"
-        MinHeight="740" MinWidth="1180"
+        Title="DmC Türkçe Dublaj • Yönetim Merkezi"
+        Height="900" Width="1500" MinHeight="780" MinWidth="1240"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource SurfaceBrush}" Foreground="White">
-    <Grid>
+        Background="{StaticResource WindowBackgroundBrush}"
+        Foreground="White">
+    <Grid Background="{StaticResource WindowBackgroundBrush}">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="230" />
+            <ColumnDefinition Width="255" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Background="#0B0D11" Padding="14">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Top">
-                    <TextBlock Text="QA YÖNETİMİ" FontSize="20" FontWeight="Bold" Margin="6,8,6,2" />
-                    <TextBlock Text="Yönetici / Geliştirici" Foreground="{StaticResource MutedBrush}" Margin="6,0,6,20" />
-                    <TextBlock Text="PROJE" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="Bold" Margin="6,0,6,5" />
-                    <ComboBox x:Name="ProjectPicker" Height="36" Margin="4,0,4,18" />
-                    <Button Content="📊  Genel Bakış" HorizontalContentAlignment="Left" />
-                    <Button Content="🐞  Hata Raporları" HorizontalContentAlignment="Left" />
-                    <Button Content="🔁  Yeniden Testler" HorizontalContentAlignment="Left" />
-                    <Button Content="👥  Test Yönetimi" HorizontalContentAlignment="Left" />
-                    <Button x:Name="TeamManagementButton" Content="🧑‍🤝‍🧑  Ekip Yönetimi" HorizontalContentAlignment="Left" Click="TeamManagementButton_Click" />
-                    <Button Content="📦  Test Sürümleri" HorizontalContentAlignment="Left" />
-                    <Button Content="🔔  Bildirimler" HorizontalContentAlignment="Left" />
-                    <Button Content="🚀  İstemci Sürümleri" HorizontalContentAlignment="Left" />
+        <Border Grid.Column="0" Background="#E9080D18" BorderBrush="#172D55" BorderThickness="0,0,1,0">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Top" Margin="16,17,16,10">
+                    <Border Height="125" CornerRadius="16" Background="#05070D" BorderBrush="#254786" BorderThickness="1" Padding="8">
+                        <Image Source="Assets/dmc-qa-logo.png" Stretch="Uniform" />
+                    </Border>
+                    <TextBlock Text="DmC QA Yönetim Merkezi" FontSize="17" FontWeight="Bold" Margin="4,12,4,0" />
+                    <TextBlock Text="YÖNETİCİ / GELİŞTİRİCİ" Foreground="{StaticResource AccentBrightBrush}" FontSize="10" FontWeight="SemiBold" CharacterSpacing="125" Margin="4,2,4,14" />
+
+                    <TextBlock Text="PROJE" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" Margin="6,0,6,6" />
+                    <ComboBox x:Name="ProjectPicker" Height="38" Margin="0,0,0,14" />
+
+                    <Button Style="{StaticResource NavButton}" Content="⌂   Genel Bakış" Click="OverviewNav_Click" />
+                    <Button Style="{StaticResource NavButton}" Content="◈   Hata Raporları" Click="BugsNav_Click" />
+                    <Button Style="{StaticResource NavButton}" Content="↻   Yeniden Testler" Click="RetestsNav_Click" />
+                    <Button Style="{StaticResource NavButton}" Content="✓   Test Yönetimi" Click="TestManagementNav_Click" />
+                    <Button Style="{StaticResource NavButton}" Content="⬡   Build Merkezi" Click="BuildsNav_Click" />
+                    <Button Style="{StaticResource NavButton}" Content="◉   Bildirimler" Click="NotificationsNav_Click" />
+                    <Button Style="{StaticResource NavButton}" Content="↑   İstemci Sürümleri" Click="ReleaseNav_Click" />
+                    <Button x:Name="TeamManagementButton" Style="{StaticResource NavButton}" Content="♟   Ekip Yönetimi" Click="TeamManagementButton_Click" />
                 </StackPanel>
-                <StackPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
-                    <Separator Margin="0,10" Background="#333740" />
-                    <Button Content="⚙  Proje Ayarları" HorizontalContentAlignment="Left" />
-                    <TextBlock x:Name="SignedInUserText" Text="—" Foreground="{StaticResource MutedBrush}" Margin="8,10,8,2" />
+
+                <StackPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom" Margin="16,10,16,18">
+                    <Button Style="{StaticResource NavButton}" Content="⚙   Proje Ayarları" Click="ProjectSettingsNav_Click" />
+                    <Border Style="{StaticResource CardStyle}" Padding="12" Background="#0A1426" Margin="0,7,0,0">
+                        <StackPanel>
+                            <TextBlock Text="● Çevrimiçi" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" />
+                            <TextBlock x:Name="SignedInUserText" Text="—" FontWeight="Bold" Margin="0,7,0,1" />
+                            <TextBlock Text="QA Yönetim Oturumu" Foreground="{StaticResource MutedBrush}" FontSize="10" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </DockPanel>
         </Border>
 
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="70" />
+                <RowDefinition Height="80" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Background="#15181E" Padding="24,0">
+            <Border Grid.Row="0" Background="#B90A1020" BorderBrush="#172B50" BorderThickness="0,0,0,1" Padding="24,0">
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock x:Name="ProjectTitle" Text="Proje seçin" FontSize="22" FontWeight="Bold" />
-                        <TextBlock x:Name="ProjectStatus" Text="—" Foreground="{StaticResource MutedBrush}" />
+                        <TextBlock x:Name="WorkspaceEyebrow" Text="GENEL BAKIŞ" Foreground="#739AFF" FontSize="10" FontWeight="Bold" CharacterSpacing="100" />
+                        <TextBlock x:Name="ProjectTitle" Text="Proje seçin" FontSize="23" FontWeight="Bold" Margin="0,2,0,0" />
+                        <TextBlock x:Name="ProjectStatus" Text="—" Foreground="{StaticResource MutedBrush}" FontSize="11" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="+ Yeni Görev" />
-                        <Button Content="+ Yeni Test Sürümü" Background="{StaticResource AccentBrush}" Foreground="White" />
+                        <Button Content="Yeni Görev" Click="NewTaskButton_Click" />
+                        <Button Content="Yeni Build" Style="{StaticResource AccentButton}" Click="NewBuildButton_Click" />
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
+            <TabControl x:Name="MainTabs" Grid.Row="1" Background="Transparent" BorderThickness="0" SelectedIndex="0">
+                <TabControl.Template>
+                    <ControlTemplate TargetType="TabControl">
+                        <ContentPresenter Content="{TemplateBinding SelectedContent}"
+                                          ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+                    </ControlTemplate>
+                </TabControl.Template>
+
                 <TabItem Header="Genel Bakış">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Margin="24">
-                            <UniformGrid Columns="5" Margin="0,0,0,18">
-                                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,10,0">
-                                    <StackPanel><TextBlock Text="TOPLAM RAPOR" Foreground="{StaticResource MutedBrush}" FontSize="11"/><TextBlock x:Name="TotalReportsText" Text="—" FontSize="30" FontWeight="Bold"/></StackPanel>
-                                </Border>
-                                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,10,0">
-                                    <StackPanel><TextBlock Text="AKTİF SORUN" Foreground="{StaticResource MutedBrush}" FontSize="11"/><TextBlock x:Name="ActiveIssuesText" Text="—" FontSize="30" FontWeight="Bold"/></StackPanel>
-                                </Border>
-                                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,10,0">
-                                    <StackPanel><TextBlock Text="YENİDEN TEST" Foreground="{StaticResource MutedBrush}" FontSize="11"/><TextBlock x:Name="RetestIssuesText" Text="—" FontSize="30" FontWeight="Bold" Foreground="#FFA726"/></StackPanel>
-                                </Border>
-                                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,10,0">
-                                    <StackPanel><TextBlock Text="ÇÖZÜLDÜ" Foreground="{StaticResource MutedBrush}" FontSize="11"/><TextBlock x:Name="ResolvedIssuesText" Text="—" FontSize="30" FontWeight="Bold" Foreground="#66BB6A"/></StackPanel>
-                                </Border>
-                                <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16">
-                                    <StackPanel><TextBlock Text="ÇÖZÜM ORANI" Foreground="{StaticResource MutedBrush}" FontSize="11"/><TextBlock x:Name="ResolutionRateText" Text="—" FontSize="30" FontWeight="Bold"/></StackPanel>
-                                </Border>
+                        <StackPanel x:Name="OverviewContent" Margin="24,22,24,30">
+                            <UniformGrid Columns="5" Margin="0,0,0,16">
+                                <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0"><StackPanel><TextBlock Text="TOPLAM RAPOR" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold"/><TextBlock x:Name="TotalReportsText" Text="—" FontSize="32" FontWeight="Bold" Margin="0,6,0,0"/></StackPanel></Border>
+                                <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0"><StackPanel><TextBlock Text="AKTİF SORUN" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold"/><TextBlock x:Name="ActiveIssuesText" Text="—" FontSize="32" FontWeight="Bold" Margin="0,6,0,0" Foreground="#77A0FF"/></StackPanel></Border>
+                                <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0"><StackPanel><TextBlock Text="YENİDEN TEST" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold"/><TextBlock x:Name="RetestIssuesText" Text="—" FontSize="32" FontWeight="Bold" Margin="0,6,0,0" Foreground="#B06EFF"/></StackPanel></Border>
+                                <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0"><StackPanel><TextBlock Text="ÇÖZÜLDÜ" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold"/><TextBlock x:Name="ResolvedIssuesText" Text="—" FontSize="32" FontWeight="Bold" Margin="0,6,0,0" Foreground="{StaticResource SuccessBrush}"/></StackPanel></Border>
+                                <Border Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="ÇÖZÜM ORANI" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold"/><TextBlock x:Name="ResolutionRateText" Text="—" FontSize="32" FontWeight="Bold" Margin="0,6,0,0" Foreground="#8FAAFF"/></StackPanel></Border>
                             </UniformGrid>
 
-                            <Grid Margin="0,0,0,18">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1.25*" />
-                                    <ColumnDefinition Width="1*" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Background="{StaticResource CardBrush}" CornerRadius="9" Padding="18" Margin="0,0,10,0">
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="1.45*"/><ColumnDefinition Width="0.9*"/></Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,12,0">
                                     <StackPanel>
-                                        <TextBlock Text="BİLİNEN SORUNLARIN DURUMU" FontWeight="Bold" />
-                                        <TextBlock Text="Çubuk yalnızca raporlanmış ve geçerli sorunların yaşam döngüsünü gösterir." Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,3,0,14" />
+                                        <TextBlock Text="BİLİNEN SORUNLARIN DURUMU" FontWeight="Bold" FontSize="15" />
+                                        <TextBlock Text="Bu grafik test kapsamını değil, yalnızca bilinen/geçerli sorunların yaşam döngüsünü gösterir." Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,4,0,16" />
                                         <Grid Height="18" ClipToBounds="True">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition x:Name="ResolvedColumn" Width="1*" />
@@ -97,61 +100,55 @@
                                                 <ColumnDefinition x:Name="RetestColumn" Width="1*" />
                                                 <ColumnDefinition x:Name="NewColumn" Width="1*" />
                                             </Grid.ColumnDefinitions>
-                                            <Border x:Name="ResolvedSegment" Grid.Column="0" Background="#43A047" CornerRadius="9,0,0,9" />
-                                            <Border x:Name="InProgressSegment" Grid.Column="1" Background="#1E88E5" />
-                                            <Border x:Name="RetestSegment" Grid.Column="2" Background="#FB8C00" />
-                                            <Border x:Name="NewSegment" Grid.Column="3" Background="#616161" CornerRadius="0,9,9,0" />
+                                            <Border x:Name="ResolvedSegment" Grid.Column="0" Background="#35D07F" CornerRadius="9,0,0,9" />
+                                            <Border x:Name="InProgressSegment" Grid.Column="1" Background="#4777FF" />
+                                            <Border x:Name="RetestSegment" Grid.Column="2" Background="#B06EFF" />
+                                            <Border x:Name="NewSegment" Grid.Column="3" Background="#34415A" CornerRadius="0,9,9,0" />
                                         </Grid>
-                                        <WrapPanel Margin="0,12,0,0">
-                                            <TextBlock Text="● Çözüldü" Foreground="#66BB6A" Margin="0,0,20,0" />
-                                            <TextBlock Text="● Üzerinde Çalışılıyor" Foreground="#42A5F5" Margin="0,0,20,0" />
-                                            <TextBlock Text="● Yeniden Test" Foreground="#FFA726" Margin="0,0,20,0" />
-                                            <TextBlock Text="● Yeni" Foreground="#BDBDBD" />
+                                        <WrapPanel Margin="0,13,0,0">
+                                            <TextBlock Text="● Çözüldü" Foreground="#35D07F" Margin="0,0,20,0" />
+                                            <TextBlock Text="● Üzerinde Çalışılıyor" Foreground="#4777FF" Margin="0,0,20,0" />
+                                            <TextBlock Text="● Yeniden Test" Foreground="#B06EFF" Margin="0,0,20,0" />
+                                            <TextBlock Text="● Yeni" Foreground="#7D8BA2" />
                                         </WrapPanel>
                                     </StackPanel>
                                 </Border>
-
-                                <Border Grid.Column="1" Background="{StaticResource CardBrush}" CornerRadius="9" Padding="18">
+                                <Border Grid.Column="1" Style="{StaticResource CardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="YENİDEN TEST SAĞLIĞI" FontWeight="Bold" />
-                                        <Grid Margin="0,14,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                            <StackPanel><TextBlock Text="İlk yeniden test başarısı" Foreground="{StaticResource MutedBrush}"/><TextBlock x:Name="FirstRetestPassText" Text="—" FontSize="24" FontWeight="Bold"/></StackPanel>
-                                            <StackPanel Grid.Column="1"><TextBlock Text="Başarısız yeniden test" Foreground="{StaticResource MutedBrush}"/><TextBlock x:Name="FailedRetestText" Text="—" FontSize="24" FontWeight="Bold" Foreground="#EF5350"/></StackPanel>
+                                        <TextBlock Text="YENİDEN TEST SAĞLIĞI" FontWeight="Bold" FontSize="15" />
+                                        <Grid Margin="0,16,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                            <StackPanel><TextBlock Text="İlk retest başarı" Foreground="{StaticResource MutedBrush}"/><TextBlock x:Name="FirstRetestPassText" Text="—" FontSize="27" FontWeight="Bold" Margin="0,5,0,0"/></StackPanel>
+                                            <StackPanel Grid.Column="1"><TextBlock Text="Başarısız retest" Foreground="{StaticResource MutedBrush}"/><TextBlock x:Name="FailedRetestText" Text="—" FontSize="27" FontWeight="Bold" Margin="0,5,0,0" Foreground="{StaticResource DangerBrush}"/></StackPanel>
                                         </Grid>
-                                        <TextBlock Text="Bir test ekibi üyesi başarısız sonuç verirse hata otomatik kapanmaz ve tekrar iş kuyruğuna döner." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,14,0,0" />
                                     </StackPanel>
                                 </Border>
                             </Grid>
 
                             <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1*" />
-                                    <ColumnDefinition Width="1*" />
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,10,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,12,0">
                                     <StackPanel>
-                                        <TextBlock Text="HATA TÜRLERİ" FontWeight="Bold" Margin="0,0,0,10" />
-                                        <DataGrid x:Name="BugTypesGrid" Height="250" AutoGenerateColumns="False" IsReadOnly="True" Background="Transparent" Foreground="White" BorderThickness="0">
+                                        <TextBlock Text="HATA TÜRLERİ" FontWeight="Bold" FontSize="15" Margin="0,0,0,10" />
+                                        <DataGrid x:Name="BugTypesGrid" Height="270" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="Tür" Binding="{Binding Name}" Width="*" />
-                                                <DataGridTextColumn Header="Rapor" Binding="{Binding Count}" Width="90" />
-                                                <DataGridTextColumn Header="Çözülen" Binding="{Binding Resolved}" Width="90" />
-                                                <DataGridTextColumn Header="Oran" Binding="{Binding Rate}" Width="90" />
+                                                <DataGridTextColumn Header="Rapor" Binding="{Binding Count}" Width="80" />
+                                                <DataGridTextColumn Header="Çözülen" Binding="{Binding Resolved}" Width="85" />
+                                                <DataGridTextColumn Header="Oran" Binding="{Binding Rate}" Width="80" />
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </StackPanel>
                                 </Border>
-                                <Border Grid.Column="1" Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16">
+                                <Border Grid.Column="1" Style="{StaticResource CardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="TEST EKİBİ GERİ BİLDİRİMİ" FontWeight="Bold" Margin="0,0,0,10" />
-                                        <DataGrid x:Name="TesterStatsGrid" Height="250" AutoGenerateColumns="False" IsReadOnly="True" Background="Transparent" Foreground="White" BorderThickness="0">
+                                        <TextBlock Text="TEST EKİBİ GERİ BİLDİRİMİ" FontWeight="Bold" FontSize="15" Margin="0,0,0,10" />
+                                        <DataGrid x:Name="TesterStatsGrid" Height="270" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Test Ekibi Üyesi" Binding="{Binding Name}" Width="*" />
-                                                <DataGridTextColumn Header="Rapor" Binding="{Binding Reports}" Width="80" />
-                                                <DataGridTextColumn Header="Geçerli" Binding="{Binding Valid}" Width="80" />
-                                                <DataGridTextColumn Header="Video" Binding="{Binding VideoRate}" Width="80" />
-                                                <DataGridTextColumn Header="Yeniden Test" Binding="{Binding RetestRate}" Width="90" />
+                                                <DataGridTextColumn Header="Tester" Binding="{Binding Name}" Width="*" />
+                                                <DataGridTextColumn Header="Rapor" Binding="{Binding Reports}" Width="70" />
+                                                <DataGridTextColumn Header="Geçerli" Binding="{Binding Valid}" Width="70" />
+                                                <DataGridTextColumn Header="Video" Binding="{Binding VideoRate}" Width="70" />
+                                                <DataGridTextColumn Header="Retest" Binding="{Binding RetestRate}" Width="75" />
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </StackPanel>
@@ -162,158 +159,103 @@
                 </TabItem>
 
                 <TabItem Header="Hata Raporları">
-                    <Grid Margin="20">
+                    <Grid Margin="24,22,24,24">
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                        <WrapPanel Margin="0,0,0,10">
-                            <ComboBox Width="160" Margin="0,0,8,0" ToolTip="Durum" />
-                            <ComboBox Width="180" Margin="0,0,8,0" ToolTip="Hata Türü" />
-                            <ComboBox Width="160" Margin="0,0,8,0" ToolTip="Test Sürümü" />
-                            <ComboBox Width="160" Margin="0,0,8,0" ToolTip="Test Ekibi Üyesi" />
-                            <TextBox Width="260" Padding="8" ToolTip="Ara" />
-                        </WrapPanel>
-                        <DataGrid Grid.Row="1" x:Name="BugReportsGrid" AutoGenerateColumns="False" IsReadOnly="True" Background="{StaticResource CardBrush}" Foreground="White">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="ID" Binding="{Binding Key}" Width="140" />
-                                <DataGridTextColumn Header="Başlık" Binding="{Binding Title}" Width="*" />
-                                <DataGridTextColumn Header="Tür" Binding="{Binding BugType}" Width="150" />
-                                <DataGridTextColumn Header="Sürüm" Binding="{Binding Build}" Width="100" />
-                                <DataGridTextColumn Header="Raporlayan" Binding="{Binding Tester}" Width="120" />
-                                <DataGridTextColumn Header="Durum" Binding="{Binding Status}" Width="150" />
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12" Padding="14">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel><TextBlock Text="HATA MERKEZİ" FontWeight="Bold" FontSize="16"/><TextBlock Text="Satıra çift tıklayarak video, timestamp, timeline, root cause ve retest ekranını aç." Foreground="{StaticResource MutedBrush}" FontSize="11"/></StackPanel>
+                                <TextBlock Grid.Column="1" Text="Çift tık → Detay" Foreground="#789BFF" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="1" ClipToBounds="True">
+                            <DataGrid x:Name="BugReportsGrid" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="ID" Binding="{Binding Key}" Width="145" />
+                                    <DataGridTextColumn Header="Başlık" Binding="{Binding Title}" Width="*" />
+                                    <DataGridTextColumn Header="Tür" Binding="{Binding BugType}" Width="170" />
+                                    <DataGridTextColumn Header="Build" Binding="{Binding Build}" Width="110" />
+                                    <DataGridTextColumn Header="Raporlayan" Binding="{Binding Tester}" Width="135" />
+                                    <DataGridTextColumn Header="Durum" Binding="{Binding Status}" Width="175" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
                     </Grid>
                 </TabItem>
 
                 <TabItem Header="Yeniden Testler">
-                    <Grid Margin="20">
-                        <DataGrid x:Name="RetestsGrid" AutoGenerateColumns="False" IsReadOnly="True" Background="{StaticResource CardBrush}" Foreground="White">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Hata" Binding="{Binding BugKey}" Width="140" />
-                                <DataGridTextColumn Header="Sürüm" Binding="{Binding BuildVersion}" Width="110" />
-                                <DataGridTextColumn Header="Atanan" Binding="{Binding Assignees}" Width="*" />
-                                <DataGridTextColumn Header="Sonuçlar" Binding="{Binding Results}" Width="220" />
-                                <DataGridTextColumn Header="Son Tarih" Binding="{Binding Deadline}" Width="150" />
-                            </DataGrid.Columns>
-                        </DataGrid>
+                    <Grid Margin="24,22,24,24">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <TextBlock Text="Yeniden Test Merkezi" FontSize="22" FontWeight="Bold" Margin="0,0,0,12" />
+                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="1" ClipToBounds="True">
+                            <DataGrid x:Name="RetestsGrid" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Hata" Binding="{Binding BugKey}" Width="145" />
+                                    <DataGridTextColumn Header="Build" Binding="{Binding BuildVersion}" Width="115" />
+                                    <DataGridTextColumn Header="Atanan" Binding="{Binding Assignees}" Width="*" />
+                                    <DataGridTextColumn Header="Sonuçlar" Binding="{Binding Results}" Width="260" />
+                                    <DataGridTextColumn Header="Son Tarih" Binding="{Binding Deadline}" Width="160" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
                     </Grid>
                 </TabItem>
 
                 <TabItem Header="Test Yönetimi">
-                    <Grid Margin="20">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.3*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
-                        <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,10,0">
-                            <StackPanel>
-                                <TextBlock Text="ORTAK GÖREVLER" FontWeight="Bold" Margin="0,0,0,10" />
-                                <DataGrid x:Name="TasksGrid" AutoGenerateColumns="False" IsReadOnly="True" Background="Transparent" Foreground="White">
+                    <Grid Margin="24,22,24,24">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,12,0" Padding="1" ClipToBounds="True">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <Grid Margin="16,14,16,10"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Text="ORTAK GÖREVLER" FontWeight="Bold" FontSize="15"/><TextBlock Text="Bir görevi aynı anda birden fazla testera ata." Foreground="{StaticResource MutedBrush}" FontSize="11"/></StackPanel>
+                                    <Button Grid.Column="1" Content="Yeni Görev" Click="NewTaskButton_Click" />
+                                </Grid>
+                                <DataGrid Grid.Row="1" x:Name="TasksGrid" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Görev" Binding="{Binding Title}" Width="*" />
-                                        <DataGridTextColumn Header="Sürüm" Binding="{Binding Build}" Width="100" />
-                                        <DataGridTextColumn Header="Atanan Kişi" Binding="{Binding AssigneeCount}" Width="90" />
-                                        <DataGridTextColumn Header="Son Tarih" Binding="{Binding Deadline}" Width="130" />
+                                        <DataGridTextColumn Header="Build" Binding="{Binding Build}" Width="110" />
+                                        <DataGridTextColumn Header="Atanan" Binding="{Binding AssigneeCount}" Width="90" />
+                                        <DataGridTextColumn Header="Son Tarih" Binding="{Binding Deadline}" Width="155" />
                                     </DataGrid.Columns>
                                 </DataGrid>
-                            </StackPanel>
+                            </Grid>
                         </Border>
-                        <Border Grid.Column="1" Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16">
-                            <StackPanel>
-                                <TextBlock Text="TEST EKİBİ" FontWeight="Bold" Margin="0,0,0,10" />
-                                <DataGrid x:Name="TestersGrid" AutoGenerateColumns="False" IsReadOnly="True" Background="Transparent" Foreground="White">
+                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="1" ClipToBounds="True">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <Grid Margin="16,14,16,10"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Text="TEST EKİBİ" FontWeight="Bold" FontSize="15"/><TextBlock Text="Atama ve retest yoğunluğu" Foreground="{StaticResource MutedBrush}" FontSize="11"/></StackPanel>
+                                    <Button Grid.Column="1" Content="Ekip Yönetimi" Click="TeamManagementButton_Click" />
+                                </Grid>
+                                <DataGrid Grid.Row="1" x:Name="TestersGrid" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Ad" Binding="{Binding Name}" Width="*" />
-                                        <DataGridTextColumn Header="Aktif Görev" Binding="{Binding Tasks}" Width="90" />
-                                        <DataGridTextColumn Header="Yeniden Test" Binding="{Binding Retests}" Width="90" />
+                                        <DataGridTextColumn Header="Görev" Binding="{Binding Tasks}" Width="75" />
+                                        <DataGridTextColumn Header="Retest" Binding="{Binding Retests}" Width="75" />
                                     </DataGrid.Columns>
                                 </DataGrid>
-                            </StackPanel>
+                            </Grid>
                         </Border>
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Test Sürümleri">
-                    <Grid Margin="20">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
-                        <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="16" Margin="0,0,10,0">
-                            <StackPanel>
-                                <TextBlock Text="SÜRÜM GEÇMİŞİ" FontWeight="Bold" Margin="0,0,0,10" />
-                                <DataGrid x:Name="BuildsGrid" AutoGenerateColumns="False" IsReadOnly="True" Background="Transparent" Foreground="White">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Sürüm" Binding="{Binding Version}" Width="100" />
-                                        <DataGridTextColumn Header="Başlık" Binding="{Binding Title}" Width="*" />
-                                        <DataGridTextColumn Header="Durum" Binding="{Binding Status}" Width="140" />
-                                        <DataGridTextColumn Header="Yükleyen" Binding="{Binding UploadedBy}" Width="120" />
-                                        <DataGridTextColumn Header="Tarih" Binding="{Binding UploadedAt}" Width="140" />
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="1" Background="{StaticResource CardBrush}" CornerRadius="9" Padding="18">
-                            <StackPanel>
-                                <TextBlock Text="YENİ TEST SÜRÜMÜ" FontWeight="Bold" FontSize="16" />
-                                <TextBlock Text="Sürüm" Foreground="{StaticResource MutedBrush}" Margin="0,14,0,4" />
-                                <TextBox Height="34" />
-                                <TextBlock Text="Başlık" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,4" />
-                                <TextBox Height="34" />
-                                <TextBlock Text="Açıklama / Değişiklik Notları" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,4" />
-                                <TextBox Height="90" AcceptsReturn="True" TextWrapping="Wrap" />
-                                <TextBlock Text="Kurulum Talimatları" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,4" />
-                                <TextBox Height="110" AcceptsReturn="True" TextWrapping="Wrap" />
-                                <WrapPanel Margin="0,12,0,0"><Button Content="Dosya Seç"/><Button Content="Test Sürümünü Yükle" Background="{StaticResource AccentBrush}" Foreground="White"/></WrapPanel>
-                            </StackPanel>
+                <TabItem Header="Build Merkezi">
+                    <Grid Margin="24,22,24,24">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Build Merkezi" FontSize="22" FontWeight="Bold"/><TextBlock Text="Candidate, Current ve Archived build geçmişini yönet." Foreground="{StaticResource MutedBrush}"/></StackPanel>
+                            <Button Grid.Column="1" Content="Yeni Build Yükle" Style="{StaticResource AccentButton}" Click="NewBuildButton_Click" />
+                        </Grid>
+                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="1" ClipToBounds="True">
+                            <DataGrid x:Name="BuildsGrid" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Sürüm" Binding="{Binding Version}" Width="130" />
+                                    <DataGridTextColumn Header="Başlık" Binding="{Binding Title}" Width="*" />
+                                    <DataGridTextColumn Header="Durum" Binding="{Binding Status}" Width="145" />
+                                    <DataGridTextColumn Header="Boyut" Binding="{Binding Size}" Width="120" />
+                                    <DataGridTextColumn Header="Yayın" Binding="{Binding Published}" Width="170" />
+                                </DataGrid.Columns>
+                            </DataGrid>
                         </Border>
                     </Grid>
-                </TabItem>
-
-                <TabItem Header="İstemci Sürümleri">
-                    <Grid Margin="20">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
-                        <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="18" Margin="0,0,10,0">
-                            <StackPanel>
-                                <TextBlock Text="QA İSTEMCİ SÜRÜMLERİ" FontWeight="Bold" />
-                                <TextBlock Text="Kararlı ve Beta kanalları kullanılır; başlatıcı aynı EXE olarak kalır." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,14" />
-                                <DataGrid x:Name="ReleasesGrid" AutoGenerateColumns="False" IsReadOnly="True" Background="Transparent" Foreground="White">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Kanal" Binding="{Binding Channel}" Width="100" />
-                                        <DataGridTextColumn Header="Sürüm" Binding="{Binding Version}" Width="100" />
-                                        <DataGridTextColumn Header="Başlık" Binding="{Binding Title}" Width="*" />
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="1" Background="{StaticResource CardBrush}" CornerRadius="9" Padding="18">
-                            <StackPanel>
-                                <TextBlock Text="GÜNCELLEME NOTU YAYINLA" FontWeight="Bold" />
-                                <ComboBox Margin="0,14,0,8"><ComboBoxItem Content="Kararlı"/><ComboBoxItem Content="Beta"/></ComboBox>
-                                <TextBox Height="34" Margin="0,0,0,8" ToolTip="Sürüm" />
-                                <TextBox Height="34" Margin="0,0,0,8" ToolTip="Başlık" />
-                                <TextBox Height="180" AcceptsReturn="True" TextWrapping="Wrap" ToolTip="Güncelleme notları" />
-                                <CheckBox Content="Açılışta göster" Margin="0,10,0,0" />
-                                <CheckBox Content="Zorunlu güncelleme" Margin="0,6,0,0" />
-                                <Button Content="İstemci Sürümünü Yayınla" HorizontalAlignment="Left" Margin="0,14,0,0" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                </TabItem>
-
-                <TabItem Header="Proje Ayarları">
-                    <ScrollViewer>
-                        <StackPanel Margin="20" MaxWidth="760" HorizontalAlignment="Left">
-                            <TextBlock Text="PROJE YAŞAM DÖNGÜSÜ" FontSize="18" FontWeight="Bold" />
-                            <Border Background="{StaticResource CardBrush}" CornerRadius="9" Padding="18" Margin="0,16,0,12">
-                                <StackPanel>
-                                    <TextBlock Text="Projeyi Kapat" FontWeight="Bold" />
-                                    <TextBlock Text="Yeni görev, test sürümü ve rapor alımını durdurur fakat hiçbir veriyi silmez." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,5,0,10" />
-                                    <Button Content="Projeyi Kapat" HorizontalAlignment="Left" />
-                                </StackPanel>
-                            </Border>
-                            <Border Background="#35191A" BorderBrush="#7F1D1D" BorderThickness="1" CornerRadius="9" Padding="18">
-                                <StackPanel>
-                                    <TextBlock Text="⚠ Kalıcı Silme" FontWeight="Bold" Foreground="#EF9A9A" />
-                                    <TextBlock Text="Yalnızca kapalı projelerde kullanılabilir; proje adı, doğrulama kodu ve ikinci farklı yönetici onayı gerektirir. Hugging Face proje yolu ve ilişkili veritabanı kayıtları ayrıntılı önizleme sonrasında silinir." Foreground="#D7B7B7" TextWrapping="Wrap" Margin="0,6,0,12" />
-                                    <Button Content="Kalıcı Silme Talebi Oluştur" HorizontalAlignment="Left" Foreground="#B71C1C" />
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ScrollViewer>
                 </TabItem>
             </TabControl>
         </Grid>
