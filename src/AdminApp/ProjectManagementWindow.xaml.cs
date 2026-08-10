@@ -21,6 +21,7 @@ public partial class ProjectManagementWindow : Window
         CurrentProjectText.Text = project?.Name ?? "Aktif proje yok";
         SaveMembersButton.IsEnabled = project is not null;
         SectionNameInput.IsEnabled = project is not null;
+        PurgeProjectButton.IsEnabled = project is not null;
         Loaded += ProjectManagementWindow_Loaded;
     }
 
@@ -96,6 +97,27 @@ public partial class ProjectManagementWindow : Window
         catch (QaApiException ex)
         {
             MessageBox.Show(ex.Message, "Bölüm Eklenemedi", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void PurgeProjectButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_project is null)
+        {
+            MessageBox.Show("Kalıcı silme için önce bir proje seçin.", "Proje Seçilmedi", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var window = new PurgeWindow(_api, _project)
+        {
+            Owner = this
+        };
+        window.ShowDialog();
+        if (window.ProjectPurged)
+        {
+            SelectedProjectId = null;
+            DialogResult = true;
+            Close();
         }
     }
 
