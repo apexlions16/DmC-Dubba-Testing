@@ -16,7 +16,7 @@ from .db import get_db
 from .main import AdminUser, CurrentUser, DeveloperUser
 from .storage import HfBucketStorage
 
-router = APIRouter(tags=["build-files"])
+router = APIRouter(tags=["test-surumu-dosyalari"])
 storage = HfBucketStorage()
 DB = Annotated[Session, Depends(get_db)]
 Upload = Annotated[UploadFile, File()]
@@ -35,13 +35,13 @@ async def upload_build_file(
 ) -> dict:
     build = db.get(models.Build, build_id)
     if build is None or build.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Build not found")
+        raise HTTPException(status_code=404, detail="Test sürümü bulunamadı.")
     if build.status == models.BuildStatus.ARCHIVED:
-        raise HTTPException(status_code=409, detail="Archived build cannot be overwritten")
+        raise HTTPException(status_code=409, detail="Arşivlenmiş test sürümünün dosyası değiştirilemez.")
     if build.storage_path:
-        raise HTTPException(status_code=409, detail="Build already has an uploaded file")
+        raise HTTPException(status_code=409, detail="Bu test sürümü için daha önce dosya yüklenmiş.")
     if not file.filename:
-        raise HTTPException(status_code=400, detail="Filename is required")
+        raise HTTPException(status_code=400, detail="Dosya adı zorunludur.")
 
     temp_path: str | None = None
     try:
@@ -100,7 +100,7 @@ def download_build(
 ) -> StreamingResponse:
     build = db.get(models.Build, build_id)
     if build is None or build.project_id != project_id or not build.storage_path:
-        raise HTTPException(status_code=404, detail="Build file not found")
+        raise HTTPException(status_code=404, detail="Test sürümü dosyası bulunamadı.")
 
     filename = build.original_filename or f"build-{build.version}.zip"
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
@@ -139,11 +139,11 @@ def record_build_user_event(
 ) -> None:
     allowed = {"download_completed", "installed", "installation_failed"}
     if event_type not in allowed:
-        raise HTTPException(status_code=400, detail="Unsupported build event")
+        raise HTTPException(status_code=400, detail="Desteklenmeyen test sürümü olayı.")
 
     build = db.get(models.Build, build_id)
     if build is None or build.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Build not found")
+        raise HTTPException(status_code=404, detail="Test sürümü bulunamadı.")
 
     db.add(
         models.AuditEvent(
@@ -170,13 +170,13 @@ def archive_build(
 ) -> None:
     build = db.get(models.Build, build_id)
     if build is None or build.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Build not found")
+        raise HTTPException(status_code=404, detail="Test sürümü bulunamadı.")
     if build.status == models.BuildStatus.CURRENT:
-        raise HTTPException(status_code=409, detail="Current test build cannot be archived")
+        raise HTTPException(status_code=409, detail="Güncel Test Sürümü arşivlenemez. Önce başka bir sürümü güncel yapın.")
     if build.status == models.BuildStatus.ARCHIVED:
         return
     if not build.storage_path or not build.original_filename:
-        raise HTTPException(status_code=409, detail="Build has no stored file")
+        raise HTTPException(status_code=409, detail="Bu test sürümüne ait saklanmış dosya yok.")
 
     open_task = db.scalar(
         select(models.Task.id)
@@ -187,7 +187,7 @@ def archive_build(
         .limit(1)
     )
     if open_task:
-        raise HTTPException(status_code=409, detail="Build is still required by an open task")
+        raise HTTPException(status_code=409, detail="Bu test sürümü hâlâ açık bir görev tarafından kullanılıyor ve arşivlenemez.")
 
     archived_path = storage.archive_build(project_id, build.id, build.original_filename)
     old_path = build.storage_path
