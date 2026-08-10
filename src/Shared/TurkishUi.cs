@@ -78,11 +78,9 @@ public static class TurkishUi
     }
 
     public static string Status(string? value) => Translate(StatusTranslations, value);
-
+    public static string RetestResult(string? value) => Translate(StatusTranslations, value);
     public static string Role(string? value) => Translate(RoleTranslations, value);
-
     public static string Severity(string? value) => Translate(SeverityTranslations, value);
-
     public static string ReleaseChannel(string? value) => Translate(ReleaseChannelTranslations, value);
 
     public static string Date(DateTimeOffset? value, bool includeTime = true)
@@ -91,10 +89,7 @@ public static class TurkishUi
         {
             return "—";
         }
-
-        return value.Value.ToLocalTime().ToString(
-            includeTime ? "d MMMM yyyy HH:mm" : "d MMMM yyyy",
-            Culture);
+        return value.Value.ToLocalTime().ToString(includeTime ? "d MMMM yyyy HH:mm" : "d MMMM yyyy", Culture);
     }
 
     public static string Date(DateTime? value, bool includeTime = true)
@@ -103,10 +98,7 @@ public static class TurkishUi
         {
             return "—";
         }
-
-        return value.Value.ToLocalTime().ToString(
-            includeTime ? "d MMMM yyyy HH:mm" : "d MMMM yyyy",
-            Culture);
+        return value.Value.ToLocalTime().ToString(includeTime ? "d MMMM yyyy HH:mm" : "d MMMM yyyy", Culture);
     }
 
     public static string FileSize(long? bytes)
@@ -115,17 +107,14 @@ public static class TurkishUi
         {
             return "—";
         }
-
         string[] units = ["B", "KB", "MB", "GB", "TB"];
         double size = bytes.Value;
         var unit = 0;
-
         while (size >= 1024 && unit < units.Length - 1)
         {
             size /= 1024;
             unit++;
         }
-
         return $"{size:0.##} {units[unit]}";
     }
 
@@ -135,25 +124,20 @@ public static class TurkishUi
         {
             return "Son tarih belirtilmedi";
         }
-
         var reference = now ?? DateTimeOffset.Now;
         var remaining = deadline.Value.ToLocalTime() - reference.ToLocalTime();
-
         if (remaining <= TimeSpan.Zero)
         {
             return "Süre doldu";
         }
-
         if (remaining.TotalDays >= 2)
         {
             return $"{Math.Floor(remaining.TotalDays):0} gün kaldı";
         }
-
         if (remaining.TotalHours >= 2)
         {
             return $"{Math.Floor(remaining.TotalHours):0} saat kaldı";
         }
-
         return $"{Math.Max(1, Math.Ceiling(remaining.TotalMinutes)):0} dakika kaldı";
     }
 
@@ -163,7 +147,6 @@ public static class TurkishUi
         {
             return "Belirtilmedi";
         }
-
         return $"{attempts} denemenin {hits} tanesinde oluştu ({hits}/{attempts})";
     }
 
@@ -175,7 +158,6 @@ public static class TurkishUi
         {
             return "—";
         }
-
         return source.TryGetValue(value.Trim(), out var translated)
             ? translated
             : HumanizeTechnicalValue(value);
@@ -188,7 +170,6 @@ public static class TurkishUi
         {
             return "—";
         }
-
         return Culture.TextInfo.ToTitleCase(normalized.ToLower(Culture));
     }
 }
