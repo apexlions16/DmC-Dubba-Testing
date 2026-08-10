@@ -1,0 +1,50 @@
+<Window x:Class="DmC.Qa.Admin.TaskCreateWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Yeni Ortak Görev" Height="720" Width="760" MinHeight="650" MinWidth="680"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource SurfaceBrush}" Foreground="White">
+    <Grid Margin="22">
+        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="YENİ ORTAK TEST GÖREVİ" FontSize="22" FontWeight="Bold"/>
+                <TextBlock Text="Aynı göreve seçilen herkes aynı görev panelini görür; kişisel aksiyonlar ayrı izlenir." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,5,0,18"/>
+                <TextBlock Text="Görev Başlığı" FontWeight="SemiBold"/>
+                <TextBox x:Name="TitleInput" Height="36" Margin="0,6,0,12"/>
+                <TextBlock Text="Açıklama / Test Talimatı" FontWeight="SemiBold"/>
+                <TextBox x:Name="DescriptionInput" Height="100" AcceptsReturn="True" TextWrapping="Wrap" Margin="0,6,0,12"/>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,8,0">
+                        <TextBlock Text="Bölüm" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="SectionPicker" Height="36" Margin="0,6,0,12" DisplayMemberPath="Name"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                        <TextBlock Text="Test Sürümü" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="BuildPicker" Height="36" Margin="0,6,0,12" DisplayMemberPath="Version"/>
+                    </StackPanel>
+                </Grid>
+                <TextBlock Text="Son Tarih" FontWeight="SemiBold"/>
+                <DatePicker x:Name="DeadlinePicker" Height="34" Margin="0,6,0,12"/>
+                <TextBlock Text="Göreve Atanacak Kişiler" FontWeight="SemiBold"/>
+                <ListBox x:Name="MembersList" Height="220" Margin="0,6,0,0" Background="{StaticResource CardBrush}" Foreground="White">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding Selected}" Foreground="White" Padding="4">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="  •  "/>
+                                    <TextBlock Text="{Binding RoleText}" Foreground="{StaticResource MutedBrush}"/>
+                                </StackPanel>
+                            </CheckBox>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </ScrollViewer>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="İptal" Click="Cancel_Click"/>
+            <Button x:Name="CreateButton" Content="Görevi Oluştur" Background="{StaticResource AccentBrush}" Foreground="White" Click="CreateButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
