@@ -1,7 +1,10 @@
 <Application x:Class="DmC.Qa.Tester.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:DmC.Qa.Tester">
     <Application.Resources>
+        <local:PercentageTextConverter x:Key="PercentageTextConverter" />
+
         <Color x:Key="WindowColor">#050813</Color>
         <Color x:Key="PanelColor">#0A1020</Color>
         <Color x:Key="CardColor">#0D172A</Color>
@@ -26,13 +29,12 @@
             <GradientStop Color="#050814" Offset="1" />
         </LinearGradientBrush>
 
-        <!-- Gönderilen mikrofon + D kablo logosunun DPI bağımsız vektör karşılığı. -->
         <DrawingImage x:Key="BrandLogoDrawing">
             <DrawingImage.Drawing>
                 <DrawingGroup>
                     <GeometryDrawing Brush="#2457FF" Geometry="M 24,25 C 24,18 29,13 36,13 L 42,13 C 49,13 54,18 54,25 L 54,34 L 24,34 Z" />
                     <GeometryDrawing Brush="#2457FF" Geometry="M 26,38 L 52,38 L 52,65 L 43,73 L 43,83 L 35,83 L 35,73 L 26,65 Z" />
-                    <GeometryDrawing Brush="#050813" Geometry="M 28,18 L 50,18 M 27,23 L 51,23 M 26,28 L 52,28" >
+                    <GeometryDrawing Brush="#050813" Geometry="M 28,18 L 50,18 M 27,23 L 51,23 M 26,28 L 52,28">
                         <GeometryDrawing.Pen><Pen Brush="#050813" Thickness="2" StartLineCap="Round" EndLineCap="Round" /></GeometryDrawing.Pen>
                     </GeometryDrawing>
                     <GeometryDrawing Brush="Transparent" Geometry="M 58,16 C 84,16 93,29 93,49 C 93,72 80,84 59,84 L 43,84 C 40,84 39,82 39,79 L 39,74">
@@ -75,23 +77,16 @@
                                 CornerRadius="11"
                                 Padding="{TemplateBinding Padding}"
                                 RenderTransformOrigin="0.5,0.5">
-                            <Border.RenderTransform>
-                                <ScaleTransform x:Name="ButtonScale" ScaleX="1" ScaleY="1" />
-                            </Border.RenderTransform>
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="Center" />
+                            <Border.RenderTransform><ScaleTransform x:Name="ButtonScale" ScaleX="1" ScaleY="1" /></Border.RenderTransform>
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Chrome" Property="Background" Value="#172A50" />
                                 <Setter TargetName="Chrome" Property="BorderBrush" Value="#4D7BFF" />
                             </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Chrome" Property="Opacity" Value="0.76" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Chrome" Property="Opacity" Value="0.35" />
-                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.76" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.35" /></Trigger>
                             <EventTrigger RoutedEvent="MouseEnter">
                                 <BeginStoryboard>
                                     <Storyboard>
@@ -134,8 +129,26 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="15" />
             <Setter Property="Padding" Value="18" />
-            <Setter Property="Effect">
-                <Setter.Value><DropShadowEffect Color="#001B58" BlurRadius="18" ShadowDepth="4" Opacity="0.26" /></Setter.Value>
+            <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#001B58" BlurRadius="18" ShadowDepth="4" Opacity="0.26" /></Setter.Value></Setter>
+        </Style>
+
+        <Style x:Key="NeonProgressBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Background" Value="#17233A" />
+            <Setter Property="Foreground" Value="#35D07F" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid ClipToBounds="True">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="8" />
+                            <Border x:Name="PART_Track" CornerRadius="8" />
+                            <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="8">
+                                <Border.Effect><DropShadowEffect Color="#35D07F" BlurRadius="12" ShadowDepth="0" Opacity="0.55" /></Border.Effect>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
             </Setter>
         </Style>
 
