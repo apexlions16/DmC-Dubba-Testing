@@ -41,6 +41,7 @@ public sealed class QaApiClient
         string displayName,
         string installationId,
         string? deviceName,
+        string clientKind = "tester",
         CancellationToken cancellationToken = default)
     {
         using var response = await _http.PostAsJsonAsync(
@@ -49,7 +50,8 @@ public sealed class QaApiClient
             {
                 display_name = displayName,
                 installation_id = installationId,
-                device_name = deviceName
+                device_name = deviceName,
+                client_kind = clientKind
             },
             _json,
             cancellationToken);
@@ -65,6 +67,64 @@ public sealed class QaApiClient
         await EnsureSuccessAsync(response, cancellationToken);
         return await response.Content.ReadFromJsonAsync<CurrentUserSummary>(_json, cancellationToken)
                ?? throw new QaApiException("Kullanıcı oturumu doğrulanamadı.");
+    }
+
+    public async Task<IReadOnlyList<AdminUserSummary>> GetAdminUsersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _http.GetAsync("admin/users", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<List<AdminUserSummary>>(_json, cancellationToken)
+               ?? [];
+    }
+
+    public async Task<AdminUserSummary> CreateAdminUserAsync(
+        string displayName,
+        string role,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _http.PostAsJsonAsync(
+            "admin/users",
+            new { display_name = displayName, role },
+            _json,
+            cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+
+        var created = await response.Content.ReadFromJsonAsync<AdminUserSummary>(_json, cancellationToken);
+        if (created is not null)
+        {
+            return created;
+        }
+
+        var users = await GetAdminUsersAsync(cancellationToken);
+        return users.FirstOrDefault(user =>
+                   string.Equals(user.DisplayName, displayName, StringComparison.CurrentCultureIgnoreCase))
+               ?? throw new QaApiException("Oluşturulan kullanıcı sunucudan okunamadı.");
+    }
+
+    public async Task SetUserEnabledAsync(
+        string userId,
+        bool enabled,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _http.PutAsJsonAsync(
+            $"admin/users/{userId}",
+            new { enabled },
+            _json,
+            cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task<int> ResetUserDevicesAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _http.PostAsync($"admin/users/{userId}/devices/reset", null, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        return document.RootElement.TryGetProperty("revoked_device_count", out var count)
+            ? count.GetInt32()
+            : 0;
     }
 
     public async Task<IReadOnlyList<ProjectSummary>> GetProjectsAsync(CancellationToken cancellationToken = default)
