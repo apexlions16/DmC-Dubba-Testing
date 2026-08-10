@@ -112,6 +112,11 @@ public sealed record RetestAssignment(
     string Note,
     DateTimeOffset? DeadlineAt);
 
+public sealed record RetestSubmitResponse(
+    string Id,
+    string RequestId,
+    string Result);
+
 public sealed record IssueProgress(
     int TotalReports,
     int ValidKnownIssues,
