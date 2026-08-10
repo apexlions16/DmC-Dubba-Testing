@@ -190,6 +190,7 @@ public partial class MainWindow : Window
         AttachButton("+ Yeni Test Sürümü", (_, _) => OpenBuildCenter());
         AttachButton("📦  Test Sürümleri", (_, _) => OpenBuildCenter());
         AttachButton("🔔  Bildirimler", (_, _) => OpenNotifications());
+        AttachButton("🚀  İstemci Sürümleri", (_, _) => OpenReleaseCenter());
         AttachButton("⚙  Proje Ayarları", (_, _) => OpenProjectManagement());
         AttachButton("Projeyi Kapat", async (_, _) => await CloseCurrentProjectAsync());
 
@@ -200,7 +201,6 @@ public partial class MainWindow : Window
             AttachButton("🐞  Hata Raporları", (_, _) => tabControl.SelectedIndex = 1);
             AttachButton("🔁  Yeniden Testler", (_, _) => tabControl.SelectedIndex = 2);
             AttachButton("👥  Test Yönetimi", (_, _) => tabControl.SelectedIndex = 3);
-            AttachButton("🚀  İstemci Sürümleri", (_, _) => tabControl.SelectedIndex = 5);
         }
     }
 
@@ -242,6 +242,16 @@ public partial class MainWindow : Window
             return;
         }
         new NotificationAdminWindow(_platformApi, _currentProject.Id) { Owner = this }.ShowDialog();
+    }
+
+    private void OpenReleaseCenter()
+    {
+        if (!IsAdminRole(_signedInUser.Role))
+        {
+            MessageBox.Show("İstemci sürümü yayınlama yetkisi yalnızca yöneticilerdedir.", "Yetki Gerekli", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        new ReleaseCenterWindow(_platformApi) { Owner = this }.ShowDialog();
     }
 
     private void OpenProjectManagement()
