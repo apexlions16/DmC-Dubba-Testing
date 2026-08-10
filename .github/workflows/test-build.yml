@@ -1,0 +1,136 @@
+name: Windows Test Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+
+jobs:
+  package-windows-test-build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .NET 8 kur
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Tester uygulamasını self-contained yayınla
+        shell: pwsh
+        run: >-
+          dotnet publish src/TesterApp/TesterApp.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishTrimmed=false -o artifacts/Tester
+
+      - name: Yönetim Merkezi'ni self-contained yayınla
+        shell: pwsh
+        run: >-
+          dotnet publish src/AdminApp/AdminApp.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishTrimmed=false -o artifacts/Admin
+
+      - name: Launcher'ı self-contained yayınla
+        shell: pwsh
+        run: >-
+          dotnet publish src/Launcher/Launcher.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishTrimmed=false -o artifacts/Launcher
+
+      - name: Backend paketleme bağımlılıklarını kur
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ./src/api pyinstaller
+
+      - name: Yerel QA backend EXE üret
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onedir `
+            --name GameQaServer `
+            --paths src/api `
+            --collect-submodules app `
+            --collect-all huggingface_hub `
+            --hidden-import sqlalchemy.dialects.sqlite `
+            src/api/server_main.py
+          New-Item -ItemType Directory -Force -Path artifacts/Server | Out-Null
+          Copy-Item -Recurse -Force dist/GameQaServer artifacts/Server/GameQaServer
+
+      - name: Test yardımcı dosyalarını kopyala
+        shell: pwsh
+        run: |
+          Copy-Item tools/test-build/Baslat-Test-Ortami.cmd artifacts/Baslat-Test-Ortami.cmd
+          Copy-Item tools/test-build/Sunucuyu-Durdur.cmd artifacts/Sunucuyu-Durdur.cmd
+          Copy-Item tools/test-build/TEST-BILGILERI.txt artifacts/TEST-BILGILERI.txt
+          Get-ChildItem artifacts/Tester,artifacts/Admin,artifacts/Launcher -Filter *.pdb -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+
+      - name: Paketlenmiş backend smoke testi
+        shell: pwsh
+        env:
+          GAME_QA_PACKAGED_TEST: '1'
+          GAME_QA_PORT: '7860'
+        run: |
+          $server = Start-Process -FilePath "$pwd/artifacts/Server/GameQaServer/GameQaServer.exe" -PassThru -WindowStyle Hidden
+          try {
+            $healthy = $false
+            for ($i = 0; $i -lt 80; $i++) {
+              try {
+                $health = Invoke-RestMethod -Uri 'http://127.0.0.1:7860/health' -TimeoutSec 2
+                if ($health.status -eq 'ok') { $healthy = $true; break }
+              } catch {}
+              Start-Sleep -Milliseconds 500
+            }
+            if (-not $healthy) { throw 'Paketlenmiş QA backend sağlık kontrolünden geçemedi.' }
+
+            $body = @{
+              display_name = 'Yönetici'
+              installation_id = 'ci-package-smoke-00000001'
+              device_name = 'GitHub Actions'
+              client_kind = 'admin'
+            } | ConvertTo-Json
+            $enroll = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:7860/auth/enroll' -ContentType 'application/json' -Body $body
+            if (-not $enroll.device_id -or -not $enroll.credential) { throw 'Yerel yönetici enrollment smoke testi başarısız.' }
+          }
+          finally {
+            Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Test verisini paketten temizle
+        shell: pwsh
+        run: Remove-Item -Recurse -Force artifacts/Server/GameQaServer/test-data -ErrorAction SilentlyContinue
+
+      - name: SHA-256 listesi oluştur
+        shell: pwsh
+        run: |
+          $files = @(
+            'artifacts/Tester/DmC.Qa.Tester.exe',
+            'artifacts/Admin/DmC.Qa.Admin.exe',
+            'artifacts/Launcher/DmC-Dub-QA.exe',
+            'artifacts/Server/GameQaServer/GameQaServer.exe'
+          )
+          $lines = foreach ($file in $files) {
+            if (Test-Path $file) {
+              $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash  $($file.Replace('artifacts/',''))"
+            }
+          }
+          $lines | Set-Content artifacts/SHA256SUMS.txt -Encoding utf8
+
+      - name: Windows test build artifact yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameQA-Test-Build-win-x64
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
