@@ -16,6 +16,7 @@ from .notification_api import router as notification_router
 from .purge_api import router as purge_router
 from .release_api import router as release_router
 from .retest_api import router as retest_router
+from .storage_api import router as storage_router
 from .tester_api import router as tester_router
 
 app = main_module.app
@@ -32,6 +33,7 @@ app.include_router(notification_router)
 app.include_router(purge_router)
 app.include_router(retest_router)
 app.include_router(release_router)
+app.include_router(storage_router)
 app.include_router(tester_router)
 
 _original_lifespan = app.router.lifespan_context
