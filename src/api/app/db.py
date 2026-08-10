@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     hf_bucket_id: str = "xykeskin/dmc-turkish-dub-qa-archive"
     hf_token: str | None = None
     bootstrap_key: str | None = None
+    device_credential_pepper: str | None = None
 
 
 settings = Settings()
