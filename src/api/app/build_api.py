@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -17,6 +18,8 @@ from .storage import HfBucketStorage
 
 router = APIRouter(tags=["build-files"])
 storage = HfBucketStorage()
+DB = Annotated[Session, Depends(get_db)]
+Upload = Annotated[UploadFile, File()]
 
 
 @router.post(
@@ -26,9 +29,9 @@ storage = HfBucketStorage()
 async def upload_build_file(
     project_id: str,
     build_id: str,
-    db: Session = Depends(get_db),
-    developer: DeveloperUser = None,
-    file: UploadFile = File(...),
+    db: DB,
+    developer: DeveloperUser,
+    file: Upload,
 ) -> dict:
     build = db.get(models.Build, build_id)
     if build is None or build.project_id != project_id:
@@ -92,8 +95,8 @@ async def upload_build_file(
 def download_build(
     project_id: str,
     build_id: str,
-    db: Session = Depends(get_db),
-    user: CurrentUser = None,
+    db: DB,
+    user: CurrentUser,
 ) -> StreamingResponse:
     build = db.get(models.Build, build_id)
     if build is None or build.project_id != project_id or not build.storage_path:
@@ -131,8 +134,8 @@ def record_build_user_event(
     project_id: str,
     build_id: str,
     event_type: str,
-    db: Session = Depends(get_db),
-    user: CurrentUser = None,
+    db: DB,
+    user: CurrentUser,
 ) -> None:
     allowed = {"download_completed", "installed", "installation_failed"}
     if event_type not in allowed:
@@ -162,8 +165,8 @@ def record_build_user_event(
 def archive_build(
     project_id: str,
     build_id: str,
-    db: Session = Depends(get_db),
-    admin: AdminUser = None,
+    db: DB,
+    admin: AdminUser,
 ) -> None:
     build = db.get(models.Build, build_id)
     if build is None or build.project_id != project_id:
@@ -176,10 +179,12 @@ def archive_build(
         raise HTTPException(status_code=409, detail="Build has no stored file")
 
     open_task = db.scalar(
-        select(models.Task.id).where(
+        select(models.Task.id)
+        .where(
             models.Task.required_build_id == build.id,
             models.Task.status == models.TaskStatus.OPEN,
-        ).limit(1)
+        )
+        .limit(1)
     )
     if open_task:
         raise HTTPException(status_code=409, detail="Build is still required by an open task")
@@ -188,7 +193,7 @@ def archive_build(
     old_path = build.storage_path
     build.storage_path = archived_path
     build.status = models.BuildStatus.ARCHIVED
-    build.archived_at = datetime.now(timezone.utc)
+    build.archived_at = datetime.now(UTC)
     db.add(
         models.AuditEvent(
             project_id=project_id,
