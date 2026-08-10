@@ -89,6 +89,19 @@ public sealed record BugSummary(
     string? RootCause,
     DateTimeOffset CreatedAt);
 
+public sealed record BugCreatedResponse(
+    string Id,
+    string Key,
+    string Status);
+
+public sealed record EvidenceUploadResponse(
+    string Id,
+    string Filename,
+    string MediaType,
+    long? SizeBytes,
+    string? Sha256,
+    string StoragePath);
+
 public sealed record RetestAssignment(
     string Id,
     string BugId,
