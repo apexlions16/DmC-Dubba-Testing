@@ -26,6 +26,7 @@ public partial class App : Application
         try
         {
             LoadRuntimeTheme();
+            ApplyApiEndpointConfiguration();
 
             var mainWindow = new MainWindow();
             MainWindow = mainWindow;
@@ -51,6 +52,12 @@ public partial class App : Application
                 "/DmC.Qa.Tester;component/Themes/DarkComboBox.xaml",
                 UriKind.Relative)
         });
+    }
+
+    private static void ApplyApiEndpointConfiguration()
+    {
+        var endpoint = ApiEndpointResolver.Resolve();
+        Environment.SetEnvironmentVariable("GAME_QA_API", endpoint.AbsoluteUri);
     }
 
     private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
