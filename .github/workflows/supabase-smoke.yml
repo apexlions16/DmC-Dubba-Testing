@@ -1,0 +1,147 @@
+name: Supabase Live API Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/supabase-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  live-api-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      API: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-api/
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Canlı API uçtan uca smoke testi
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+          import uuid
+
+          API = os.environ['API']
+
+          def request(path='', method='GET', body=None, auth=None):
+              headers={'Accept':'application/json'}
+              data=None
+              if body is not None:
+                  headers['Content-Type']='application/json'
+                  data=json.dumps(body).encode()
+              if auth:
+                  headers['Authorization']=auth
+              req=urllib.request.Request(API+path, data=data, method=method, headers=headers)
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as response:
+                      raw=response.read().decode()
+                      return response.status, json.loads(raw) if raw else None
+              except urllib.error.HTTPError as exc:
+                  raw=exc.read().decode()
+                  try: payload=json.loads(raw)
+                  except: payload={'raw':raw}
+                  raise RuntimeError(f'{method} {path}: HTTP {exc.code}: {payload}') from exc
+
+          def enroll(name, suffix, kind):
+              _, data=request('auth/enroll','POST',{
+                  'display_name':name,
+                  'installation_id':f'ci-live-{suffix}-{uuid.uuid4().hex}',
+                  'device_name':'GitHub Actions',
+                  'client_kind':kind,
+              })
+              assert data.get('device_id') and data.get('credential')
+              return f"Device {data['device_id']}.{data['credential']}", data
+
+          status, health=request()
+          assert status==200 and health.get('status')=='ok'
+
+          tester_auth,_=enroll('CI Tester','tester','tester')
+          _,me=request('me',auth=tester_auth)
+          assert me['display_name']=='CI Tester' and me['role']=='tester'
+          _,projects=request('projects',auth=tester_auth)
+          assert any(p['key']=='DMC' for p in projects)
+          dmc=next(p for p in projects if p['key']=='DMC')
+          _,summary=request(f"projects/{dmc['id']}/analytics/summary",auth=tester_auth)
+          assert 'valid_known_issues' in summary
+
+          admin1,_=enroll('CI Yönetici','admin1','admin')
+          admin2,_=enroll('CI Yönetici 2','admin2','admin')
+          _,users=request('admin/users',auth=admin1)
+          tester_id=next(u['id'] for u in users if u['display_name']=='CI Tester')
+          admin1_id=next(u['id'] for u in users if u['display_name']=='CI Yönetici')
+          admin2_id=next(u['id'] for u in users if u['display_name']=='CI Yönetici 2')
+
+          key='CISMOKE'+uuid.uuid4().hex[:6].upper()
+          name='CI Silinebilir Proje '+key
+          _,created=request('projects','POST',{'key':key,'name':name,'section_label':'Bölüm'},admin1)
+          pid=created['id']
+
+          request(f'admin/projects/{pid}/members','PUT',{'user_ids':[tester_id,admin1_id,admin2_id]},admin1)
+          _,section=request(f'admin/projects/{pid}/sections','POST',{'name':'Bölüm 01','sort_order':1},admin1)
+          _,task=request(f'projects/{pid}/tasks','POST',{
+              'title':'CI Ortak Görev','description':'Silme testi',
+              'section_id':section['id'],'required_build_id':None,
+              'deadline_at':None,'assignee_user_ids':[tester_id]
+          },admin1)
+
+          # Tester is not automatically authorized to a brand-new device against project membership
+          # until membership is present; it is now present.
+          _,bug=request('bugs','POST',{
+              'project_id':pid,'task_id':task['id'],'section_id':section['id'],
+              'reported_build_id':None,'title':'CI smoke hata raporu','bug_type':'Teknik Problem',
+              'trigger':'Normal oynanış','description':'Geçici smoke test verisi.',
+              'repro_attempts':1,'repro_hits':1,'bug_timestamp_seconds':12.5
+          },tester_auth)
+          assert bug['key'].startswith(key+'-')
+
+          _,detail=request(f"admin/bugs/{bug['id']}",auth=admin1)
+          assert detail['key']==bug['key'] and detail['reporter_name']=='CI Tester'
+          request(f"bugs/{bug['id']}/status",'POST',{'status':'in_progress','note':'CI kontrol','root_cause':'integration'},admin1)
+
+          _,prog=request(f'projects/{pid}/analytics/summary',auth=admin1)
+          assert prog['valid_known_issues']==1 and prog['in_progress']==1
+
+          request(f'projects/{pid}/close','POST',None,admin1)
+          _,preview=request(f'admin/projects/{pid}/purge-preview',auth=admin1)
+          assert preview['bug_reports']==1 and preview['tasks']==1 and preview['sections']==1
+
+          _,purge=request(f'admin/projects/{pid}/purge-requests','POST',{
+              'project_name':name,
+              'delete_storage':False,
+              'delete_database':True,
+              'delete_audit_tombstone':False,
+          },admin1)
+          assert purge['confirmation_code'].startswith('DELETE-')
+
+          _,approved=request(f"admin/purge-requests/{purge['id']}/approve",'POST',{
+              'project_name':name,
+              'confirmation_code':purge['confirmation_code'],
+          },admin2)
+          assert approved['status']=='completed'
+
+          _,projects_after=request('projects',auth=admin1)
+          assert not any(p['id']==pid for p in projects_after), 'Purge sonrası proje hâlâ listeleniyor.'
+          _,users_after=request('admin/users',auth=admin1)
+          assert any(u['id']==tester_id for u in users_after), 'Project purge global kullanıcıyı yanlışlıkla sildi.'
+
+          print('Supabase canlı API smoke: OK')
+          print('Cihaz auth: OK')
+          print('Proje/görev/bug/event: OK')
+          print('İki-admin DB purge: OK')
+          print('Global kullanıcı korunumu: OK')
+          PY
