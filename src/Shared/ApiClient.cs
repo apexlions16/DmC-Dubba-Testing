@@ -18,6 +18,11 @@ public sealed class QaApiClient
         _http = http;
     }
 
+    public Uri BaseAddress => _http.BaseAddress
+                              ?? throw new InvalidOperationException("API adresi ayarlanmamış.");
+
+    public string? DeviceAuthorization { get; private set; }
+
     public void SetDevelopmentUser(string userId)
     {
         _http.DefaultRequestHeaders.Remove("X-User-Id");
@@ -26,6 +31,7 @@ public sealed class QaApiClient
 
     public void SetDeviceCredential(string deviceId, string credential)
     {
+        DeviceAuthorization = $"Device {deviceId}.{credential}";
         _http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Device", $"{deviceId}.{credential}");
         _http.DefaultRequestHeaders.Remove("X-User-Id");
@@ -33,6 +39,7 @@ public sealed class QaApiClient
 
     public void ClearAuthentication()
     {
+        DeviceAuthorization = null;
         _http.DefaultRequestHeaders.Authorization = null;
         _http.DefaultRequestHeaders.Remove("X-User-Id");
     }
@@ -55,7 +62,6 @@ public sealed class QaApiClient
             },
             _json,
             cancellationToken);
-
         await EnsureSuccessAsync(response, cancellationToken);
         return await response.Content.ReadFromJsonAsync<DeviceEnrollmentResponse>(_json, cancellationToken)
                ?? throw new QaApiException("Cihaz eşleştirme yanıtı okunamadı.");
@@ -74,8 +80,7 @@ public sealed class QaApiClient
     {
         using var response = await _http.GetAsync("admin/users", cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<List<AdminUserSummary>>(_json, cancellationToken)
-               ?? [];
+        return await response.Content.ReadFromJsonAsync<List<AdminUserSummary>>(_json, cancellationToken) ?? [];
     }
 
     public async Task<AdminUserSummary> CreateAdminUserAsync(
@@ -89,7 +94,6 @@ public sealed class QaApiClient
             _json,
             cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-
         var created = await response.Content.ReadFromJsonAsync<AdminUserSummary>(_json, cancellationToken);
         if (created is not null)
         {
@@ -131,16 +135,14 @@ public sealed class QaApiClient
     {
         using var response = await _http.GetAsync("projects", cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<List<ProjectSummary>>(_json, cancellationToken)
-               ?? [];
+        return await response.Content.ReadFromJsonAsync<List<ProjectSummary>>(_json, cancellationToken) ?? [];
     }
 
     public async Task<IReadOnlyList<TaskSummary>> GetMyTasksAsync(CancellationToken cancellationToken = default)
     {
         using var response = await _http.GetAsync("tasks/mine", cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<List<TaskSummary>>(_json, cancellationToken)
-               ?? [];
+        return await response.Content.ReadFromJsonAsync<List<TaskSummary>>(_json, cancellationToken) ?? [];
     }
 
     public async Task<IReadOnlyList<RetestAssignment>> GetMyRetestsAsync(
@@ -148,8 +150,7 @@ public sealed class QaApiClient
     {
         using var response = await _http.GetAsync("retests/mine", cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<List<RetestAssignment>>(_json, cancellationToken)
-               ?? [];
+        return await response.Content.ReadFromJsonAsync<List<RetestAssignment>>(_json, cancellationToken) ?? [];
     }
 
     public async Task<RetestSubmitResponse> SubmitRetestAsync(
@@ -165,15 +166,9 @@ public sealed class QaApiClient
             RetestResult.Failed => "failed",
             _ => "uncertain"
         };
-
         using var response = await _http.PostAsJsonAsync(
             $"retests/{retestRequestId}/submit",
-            new
-            {
-                result = technicalResult,
-                tested_build_id = testedBuildId,
-                comment
-            },
+            new { result = technicalResult, tested_build_id = testedBuildId, comment },
             _json,
             cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -217,16 +212,28 @@ public sealed class QaApiClient
         string bugId,
         string filePath,
         CancellationToken cancellationToken = default)
-        => UploadEvidenceAsync($"bugs/{bugId}/evidence", filePath, cancellationToken);
+        => UploadEvidenceAsync(
+            directInitEndpoint: $"bugs/{bugId}/evidence/init",
+            directFinalizeEndpoint: $"bugs/{bugId}/evidence/finalize",
+            localMultipartEndpoint: $"bugs/{bugId}/evidence",
+            filePath,
+            cancellationToken);
 
     public Task<EvidenceUploadResponse> UploadRetestEvidenceAsync(
         string retestRequestId,
         string filePath,
         CancellationToken cancellationToken = default)
-        => UploadEvidenceAsync($"retests/{retestRequestId}/evidence", filePath, cancellationToken);
+        => UploadEvidenceAsync(
+            directInitEndpoint: $"retests/{retestRequestId}/evidence/init",
+            directFinalizeEndpoint: $"retests/{retestRequestId}/evidence/finalize",
+            localMultipartEndpoint: $"retests/{retestRequestId}/evidence",
+            filePath,
+            cancellationToken);
 
     private async Task<EvidenceUploadResponse> UploadEvidenceAsync(
-        string endpoint,
+        string directInitEndpoint,
+        string directFinalizeEndpoint,
+        string localMultipartEndpoint,
         string filePath,
         CancellationToken cancellationToken)
     {
@@ -235,32 +242,43 @@ public sealed class QaApiClient
             throw new QaApiException("Yüklenecek video veya kanıt dosyası bulunamadı.");
         }
 
+        var mediaType = DirectFileTransfer.MediaTypeForFile(filePath);
+        if (DirectFileTransfer.TryResolveFilesBase(BaseAddress, out var filesBase))
+        {
+            var sha256 = await DirectFileTransfer.ComputeSha256Async(filePath, cancellationToken);
+            var init = await DirectFileTransfer.InitializeAsync(
+                filesBase,
+                directInitEndpoint,
+                DeviceAuthorization,
+                filePath,
+                mediaType,
+                sha256,
+                cancellationToken);
+            await DirectFileTransfer.PutFileAsync(
+                init.UploadUri,
+                filePath,
+                mediaType,
+                cancellationToken: cancellationToken);
+            return await DirectFileTransfer.FinalizeAsync<EvidenceUploadResponse>(
+                filesBase,
+                directFinalizeEndpoint,
+                DeviceAuthorization,
+                init,
+                filePath,
+                mediaType,
+                sha256,
+                cancellationToken);
+        }
+
         await using var fileStream = File.OpenRead(filePath);
         using var fileContent = new StreamContent(fileStream);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue(MediaTypeForFile(filePath));
-
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(mediaType);
         using var form = new MultipartFormDataContent();
         form.Add(fileContent, "file", Path.GetFileName(filePath));
-
-        using var response = await _http.PostAsync(endpoint, form, cancellationToken);
+        using var response = await _http.PostAsync(localMultipartEndpoint, form, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
         return await response.Content.ReadFromJsonAsync<EvidenceUploadResponse>(_json, cancellationToken)
                ?? throw new QaApiException("Video yükleme yanıtı okunamadı.");
-    }
-
-    private static string MediaTypeForFile(string filePath)
-    {
-        return Path.GetExtension(filePath).ToLowerInvariant() switch
-        {
-            ".mp4" => "video/mp4",
-            ".mov" => "video/quicktime",
-            ".mkv" => "video/x-matroska",
-            ".webm" => "video/webm",
-            ".avi" => "video/x-msvideo",
-            ".png" => "image/png",
-            ".jpg" or ".jpeg" => "image/jpeg",
-            _ => "application/octet-stream"
-        };
     }
 
     private static async Task EnsureSuccessAsync(
@@ -271,7 +289,6 @@ public sealed class QaApiClient
         {
             return;
         }
-
         var fallback = $"Sunucu isteği başarısız oldu ({(int)response.StatusCode}).";
         try
         {
@@ -287,7 +304,6 @@ public sealed class QaApiClient
         catch (JsonException)
         {
         }
-
         throw new QaApiException(fallback);
     }
 }
