@@ -165,7 +165,7 @@ public partial class BuildCenterWindow : Window
         }
         try
         {
-            await _api.ArchiveBuildAsync(_projectId, row.Source.Id);
+            await _api.ArchiveBuildForCurrentBackendAsync(_projectId, row.Source.Id);
             Changed = true;
             await ReloadAsync();
         }
