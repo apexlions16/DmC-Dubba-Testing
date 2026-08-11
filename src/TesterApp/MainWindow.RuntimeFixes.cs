@@ -12,12 +12,7 @@ public partial class MainWindow
 {
     private bool _runtimeFixesInitialized;
     private bool _progressRefreshRunning;
-
-    protected override void OnContentRendered(EventArgs e)
-    {
-        base.OnContentRendered(e);
-        InitializeRuntimeFixes();
-    }
+    private DispatcherTimer? _liveNotificationTimer;
 
     private void InitializeRuntimeFixes()
     {
@@ -49,6 +44,43 @@ public partial class MainWindow
 
         var descriptor = DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
         descriptor?.AddValueChanged(ResolutionPercent, (_, _) => _ = RefreshProgressVisualAsync());
+
+        ConfigureLiveNotificationPolling();
+    }
+
+    private void ConfigureLiveNotificationPolling()
+    {
+        if (!_platformApi.BaseAddress.AbsolutePath.Contains(
+                "/functions/v1/qa-api/",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Supabase Edge Function sürümünde kalıcı WebSocket endpoint'i yok. Eski watcher'ın
+        // reconnect döngüsünü durdurup kısa aralıklı polling kullanıyoruz.
+        _notificationCts.Cancel();
+        _liveNotificationTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(10)
+        };
+        _liveNotificationTimer.Tick += async (_, _) =>
+        {
+            if (!_hasAuthenticatedCredential)
+            {
+                return;
+            }
+            try
+            {
+                await LoadNotificationsAsync(showPopup: true);
+            }
+            catch (Exception ex) when (ex is QaApiException or HttpRequestException or TaskCanceledException)
+            {
+                // Bildirim polling hatası ana tester akışını kesmez; sonraki tur tekrar dener.
+            }
+        };
+        _liveNotificationTimer.Start();
+        Closed += (_, _) => _liveNotificationTimer?.Stop();
     }
 
     private async void BuildDownloadLiveButton_Click(object sender, RoutedEventArgs e)
