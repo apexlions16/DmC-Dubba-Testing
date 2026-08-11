@@ -133,6 +133,13 @@ jobs:
           $testerProcesses | Stop-Process -Force
           Write-Host 'Launcher preloaded payload smoke: OK'
 
+      - name: Paket debug ve smoke artıklarını temizle
+        shell: pwsh
+        run: |
+          Get-ChildItem live-build -Recurse -Filter '*.pdb' -File | Remove-Item -Force
+          Remove-Item live-build/Launcher/launcher.log -Force -ErrorAction SilentlyContinue
+          Write-Host 'PDB ve smoke launcher.log dosyaları paketten temizlendi.'
+
       - name: Test rehberini ekle
         shell: pwsh
         run: |
