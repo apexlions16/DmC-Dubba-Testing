@@ -2,6 +2,11 @@ name: HF S3 Credentials Sync
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - '.github/workflows/sync-hf-s3.yml'
 
 permissions:
   contents: read
@@ -9,23 +14,64 @@ permissions:
 
 env:
   SUPABASE_SECRET_BOOTSTRAP_URL: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-secret-bootstrap
+  HF_S3_ENDPOINT: https://s3.hf.co/xykeskin
+  HF_S3_BUCKET: dmc-turkish-dub-qa-archive
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+  AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       HF_S3_ACCESS_KEY: ${{ secrets.HF_S3_ACCESS_KEY }}
       HF_S3_SECRET_KEY: ${{ secrets.HF_S3_SECRET_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.HF_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HF_S3_SECRET_KEY }}
+
     steps:
       - name: GitHub S3 secretlarını doğrula
         shell: bash
         run: |
+          set -euo pipefail
           if [ -z "$HF_S3_ACCESS_KEY" ] || [ -z "$HF_S3_SECRET_KEY" ]; then
             echo 'HF_S3_ACCESS_KEY ve HF_S3_SECRET_KEY GitHub Actions Secrets içinde bulunmalıdır.' >&2
             exit 1
           fi
+          if [[ "$HF_S3_ACCESS_KEY" != HFAK* ]]; then
+            echo 'HF_S3_ACCESS_KEY beklenen HFAK önekiyle başlamıyor.' >&2
+            exit 1
+          fi
           echo 'HF S3 credential secretları mevcut. Değerleri loglanmayacak.'
+
+      - name: HF S3 Put/Get/List/Delete probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEY="_system/s3-probes/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.txt"
+          printf 'Game QA HF S3 probe %s\n' "$GITHUB_SHA" > probe.txt
+          cleanup() {
+            aws --endpoint-url "$HF_S3_ENDPOINT" s3api delete-object \
+              --bucket "$HF_S3_BUCKET" --key "$KEY" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          aws --endpoint-url "$HF_S3_ENDPOINT" s3api put-object \
+            --bucket "$HF_S3_BUCKET" --key "$KEY" --body probe.txt >/dev/null
+
+          aws --endpoint-url "$HF_S3_ENDPOINT" s3api get-object \
+            --bucket "$HF_S3_BUCKET" --key "$KEY" probe-downloaded.txt >/dev/null
+          cmp probe.txt probe-downloaded.txt
+
+          COUNT=$(aws --endpoint-url "$HF_S3_ENDPOINT" s3api list-objects-v2 \
+            --bucket "$HF_S3_BUCKET" --prefix "$KEY" --query 'KeyCount' --output text)
+          test "$COUNT" = "1"
+
+          aws --endpoint-url "$HF_S3_ENDPOINT" s3api delete-object \
+            --bucket "$HF_S3_BUCKET" --key "$KEY" >/dev/null
+          trap - EXIT
+          echo 'HF S3 Put/Get/List/Delete doğrulandı.'
 
       - name: S3 credentiallarını GitHub OIDC ile Supabase Vault'a aktar
         shell: bash
@@ -68,3 +114,7 @@ jobs:
               raise SystemExit('Supabase Vault S3 secret aktarımı doğrulanamadı.')
           print('HF S3 credentialları Supabase Vault içinde güncellendi; değerler loglanmadı.')
           PY
+
+      - name: Sonuç
+        run: |
+          echo 'HF S3 gateway ve Supabase Vault senkronu hazır.'
