@@ -83,10 +83,10 @@ public partial class BuildCenterWindow : Window
             var progress = new Progress<double>(value =>
             {
                 UploadProgress.Value = value;
-                UploadStatus.Text = $"Yükleniyor... %{value:0}";
+                UploadStatus.Text = $"Doğrudan Hugging Face'e yükleniyor... %{value:0}";
             });
-            await _api.UploadBuildAsync(_projectId, created.Id, _filePath, progress);
-            UploadStatus.Text = "Yükleme tamamlandı. Yönetici yayınlamadan testerlar bu sürümü güncel sürüm olarak görmez.";
+            await _api.UploadBuildForCurrentBackendAsync(_projectId, created.Id, _filePath, progress);
+            UploadStatus.Text = "Yükleme ve SHA-256 kaydı tamamlandı. Yönetici yayınlamadan testerlar bu sürümü güncel sürüm olarak görmez.";
             Changed = true;
             VersionInput.Clear();
             TitleInput.Clear();
