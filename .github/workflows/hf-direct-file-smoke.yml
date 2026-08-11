@@ -1,0 +1,216 @@
+name: HF Direct File + Purge Smoke
+
+on:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - '.github/workflows/hf-direct-file-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  QA_API: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-api/
+  QA_FILES: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-files/
+  HF_S3_ENDPOINT: https://s3.hf.co/xykeskin
+  HF_S3_BUCKET: dmc-turkish-dub-qa-archive
+  AWS_DEFAULT_REGION: us-east-1
+
+jobs:
+  live-file-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.HF_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HF_S3_SECRET_KEY }}
+      HF_S3_ACCESS_KEY: ${{ secrets.HF_S3_ACCESS_KEY }}
+      HF_S3_SECRET_KEY: ${{ secrets.HF_S3_SECRET_KEY }}
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Test bağımlılıklarını kur
+        run: pip install 'requests>=2.32,<3' 'boto3>=1.35,<2'
+
+      - name: Direct HF upload/download ve iki-admin purge testini çalıştır
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import os
+          import time
+          import uuid
+          import requests
+          import boto3
+          from botocore.config import Config
+
+          API = os.environ['QA_API']
+          FILES = os.environ['QA_FILES']
+          BUCKET = os.environ['HF_S3_BUCKET']
+          ENDPOINT = os.environ['HF_S3_ENDPOINT']
+
+          def call(base, path='', method='GET', body=None, auth=None, allow_redirects=True):
+              headers={'Accept':'application/json'}
+              if auth: headers['Authorization']=auth
+              r=requests.request(method, base+path, json=body, headers=headers, timeout=60, allow_redirects=allow_redirects)
+              if r.status_code >= 400:
+                  try: detail=r.json()
+                  except Exception: detail=r.text[:1000]
+                  raise RuntimeError(f'{method} {path}: HTTP {r.status_code}: {detail}')
+              if not r.content: return r, None
+              ctype=r.headers.get('content-type','')
+              return r, r.json() if 'json' in ctype else r.content
+
+          def enroll(name, installation, kind):
+              _, data=call(API,'auth/enroll','POST',{
+                  'display_name':name,
+                  'installation_id':installation,
+                  'device_name':'GitHub Direct File Smoke',
+                  'client_kind':kind,
+              })
+              return f"Device {data['device_id']}.{data['credential']}", data
+
+          def direct_put(url, payload, content_type='application/octet-stream'):
+              r=requests.put(url, data=payload, headers={'Content-Type':content_type}, timeout=120)
+              if r.status_code >= 400:
+                  raise RuntimeError(f'Presigned PUT HTTP {r.status_code}: {r.text[:1000]}')
+
+          def direct_download(path, auth):
+              first=requests.get(FILES+path, headers={'Authorization':auth}, timeout=60, allow_redirects=False)
+              if first.status_code != 302:
+                  raise RuntimeError(f'Download redirect bekleniyordu, HTTP {first.status_code}: {first.text[:1000]}')
+              location=first.headers['Location']
+              r=requests.get(location, timeout=120)
+              if r.status_code >= 400:
+                  raise RuntimeError(f'Presigned GET HTTP {r.status_code}: {r.text[:1000]}')
+              return r.content
+
+          _, health=call(FILES)
+          assert health['status']=='ok' and health['s3_ready'] is True, health
+          print('qa-files health/S3 ready: OK')
+
+          tester_auth,_=enroll('CI Tester','ci-live-direct-tester-v1','tester')
+          admin1,_=enroll('CI Yönetici','ci-live-direct-admin1-v1','admin')
+          admin2,_=enroll('CI Yönetici 2','ci-live-direct-admin2-v1','admin')
+
+          _, users=call(API,'admin/users',auth=admin1)
+          tester_id=next(x['id'] for x in users if x['display_name']=='CI Tester')
+          admin1_id=next(x['id'] for x in users if x['display_name']=='CI Yönetici')
+          admin2_id=next(x['id'] for x in users if x['display_name']=='CI Yönetici 2')
+
+          key='CIFILE'+uuid.uuid4().hex[:8].upper()
+          name='CI HF Silinebilir Proje '+key
+          _, created=call(API,'projects','POST',{'key':key,'name':name,'section_label':'Bölüm'},admin1)
+          pid=created['id']
+          prefix=f'projects/{pid}/'
+          print('Disposable project:', pid)
+
+          s3=boto3.client(
+              's3', endpoint_url=ENDPOINT,
+              aws_access_key_id=os.environ['HF_S3_ACCESS_KEY'],
+              aws_secret_access_key=os.environ['HF_S3_SECRET_KEY'],
+              config=Config(region_name='us-east-1',s3={'addressing_style':'path'},request_checksum_calculation='when_required',response_checksum_validation='when_required'))
+
+          try:
+              call(API,f'admin/projects/{pid}/members','PUT',{'user_ids':[tester_id,admin1_id,admin2_id]},admin1)
+
+              # Build metadata + direct HF upload.
+              _, build=call(API,f'projects/{pid}/builds','POST',{
+                  'version':'0.0.1-ci','title':'CI Direct Build','description':'Geçici direct upload testi',
+                  'installation_instructions':'CI','changelog':'CI','fix_candidate_bug_ids':[]
+              },admin1)
+              build_id=build['id']
+              build_bytes=(b'GAME-QA-CI-BUILD\n'+os.urandom(256*1024))
+              build_sha=hashlib.sha256(build_bytes).hexdigest()
+              _, init=call(FILES,f'projects/{pid}/builds/{build_id}/file/init','POST',{
+                  'filename':'ci-build.bin','size_bytes':len(build_bytes),'sha256':build_sha,'media_type':'application/octet-stream'
+              },admin1)
+              direct_put(init['upload_url'],build_bytes)
+              call(FILES,f'projects/{pid}/builds/{build_id}/file/finalize','POST',{
+                  'storage_path':init['storage_path'],'filename':init['filename'],'size_bytes':len(build_bytes),'sha256':build_sha
+              },admin1)
+              call(API,f'projects/{pid}/builds/{build_id}/publish','POST',None,admin1)
+              downloaded=direct_download(f'projects/{pid}/builds/{build_id}/download',tester_auth)
+              assert downloaded==build_bytes, 'Build byte karşılaştırması başarısız.'
+              print('Build direct PUT/GET: OK')
+
+              # Bug + evidence direct HF upload.
+              _, bug=call(API,'bugs','POST',{
+                  'project_id':pid,'title':'CI direct video testi','bug_type':'Teknik Problem',
+                  'trigger':'Normal oynanış','description':'Disposable direct file smoke','reported_build_id':build_id,
+                  'repro_attempts':1,'repro_hits':1,'bug_timestamp_seconds':3.5
+              },tester_auth)
+              video=b'FAKE-MP4-CI\n'+os.urandom(128*1024)
+              video_sha=hashlib.sha256(video).hexdigest()
+              _, einit=call(FILES,f"bugs/{bug['id']}/evidence/init",'POST',{
+                  'filename':'ci-video.mp4','size_bytes':len(video),'sha256':video_sha,'media_type':'video/mp4'
+              },tester_auth)
+              direct_put(einit['upload_url'],video,'video/mp4')
+              _, asset=call(FILES,f"bugs/{bug['id']}/evidence/finalize",'POST',{
+                  'storage_path':einit['storage_path'],'filename':einit['filename'],'media_type':'video/mp4',
+                  'size_bytes':len(video),'sha256':video_sha
+              },tester_auth)
+              evidence_download=direct_download(f"evidence/{asset['id']}/download",admin1)
+              assert evidence_download==video, 'Kanıt byte karşılaştırması başarısız.'
+              _, detail=call(API,f"admin/bugs/{bug['id']}",auth=admin1)
+              assert any(x['id']==asset['id'] for x in detail['evidence'])
+              print('Bug evidence direct PUT/GET + metadata: OK')
+
+              # Retest evidence de aynı project namespace içinde.
+              _, rr=call(API,f"bugs/{bug['id']}/retests",'POST',{
+                  'build_id':build_id,'assignee_user_ids':[tester_id],'note':'CI retest','deadline_at':None
+              },admin1)
+              retest_video=b'FAKE-RETEST-CI\n'+os.urandom(64*1024)
+              retest_sha=hashlib.sha256(retest_video).hexdigest()
+              _, rinit=call(FILES,f"retests/{rr['id']}/evidence/init",'POST',{
+                  'filename':'ci-retest.mp4','size_bytes':len(retest_video),'sha256':retest_sha,'media_type':'video/mp4'
+              },tester_auth)
+              direct_put(rinit['upload_url'],retest_video,'video/mp4')
+              _, rasset=call(FILES,f"retests/{rr['id']}/evidence/finalize",'POST',{
+                  'storage_path':rinit['storage_path'],'filename':rinit['filename'],'media_type':'video/mp4',
+                  'size_bytes':len(retest_video),'sha256':retest_sha
+              },tester_auth)
+              call(API,f"retests/{rr['id']}/submit",'POST',{
+                  'tested_build_id':build_id,'result':'passed','comment':'CI OK'
+              },tester_auth)
+              print('Retest evidence direct PUT + result: OK')
+
+              before=s3.list_objects_v2(Bucket=BUCKET,Prefix=prefix)
+              before_keys=[x['Key'] for x in before.get('Contents',[])]
+              assert len(before_keys)>=3, before_keys
+              print(f'HF project prefix purge öncesi: {len(before_keys)} obje')
+
+              # Close + two-admin purge, storage first then DB cascade.
+              call(API,f'projects/{pid}/close','POST',None,admin1)
+              _, preview=call(API,f'admin/projects/{pid}/purge-preview',auth=admin1)
+              assert preview['builds']==1 and preview['bug_reports']==1 and preview['evidence_files']>=2, preview
+              _, purge=call(API,f'admin/projects/{pid}/purge-requests','POST',{
+                  'project_name':name,'delete_storage':True,'delete_database':True,'delete_audit_tombstone':False
+              },admin1)
+              _, approved=call(API,f"admin/purge-requests/{purge['id']}/approve",'POST',{
+                  'project_name':name,'confirmation_code':purge['confirmation_code']
+              },admin2)
+              assert approved['status']=='completed', approved
+
+              after=s3.list_objects_v2(Bucket=BUCKET,Prefix=prefix)
+              assert after.get('KeyCount',0)==0 and not after.get('Contents'), after
+              _, projects=call(API,'projects',auth=admin1)
+              assert not any(x['id']==pid for x in projects), 'Purge sonrası proje DB içinde kaldı.'
+              _, users_after=call(API,'admin/users',auth=admin1)
+              assert any(x['id']==tester_id for x in users_after), 'Global tester yanlışlıkla silindi.'
+              print('HF prefix purge + DB cascade + global user preservation: OK')
+          finally:
+              # Test yarıda kalırsa yalnız disposable prefix'i temizlemeyi dene.
+              try:
+                  remaining=s3.list_objects_v2(Bucket=BUCKET,Prefix=prefix)
+                  for item in remaining.get('Contents',[]):
+                      s3.delete_object(Bucket=BUCKET,Key=item['Key'])
+              except Exception:
+                  pass
+
+          print('HF Direct File + Purge smoke: ALL OK')
+          PY
