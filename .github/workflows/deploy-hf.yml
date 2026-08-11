@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: hf-storage-verify
@@ -26,6 +27,7 @@ env:
   HF_SPACE_ID: xykeskin/dmc-qa-platform-api
   HF_BUCKET_ID: xykeskin/dmc-turkish-dub-qa-archive
   HF_SPACE_URL: https://xykeskin-dmc-qa-platform-api.hf.space
+  SUPABASE_SECRET_BOOTSTRAP_URL: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-secret-bootstrap
 
 jobs:
   verify-hf-bucket:
@@ -92,9 +94,48 @@ jobs:
                       pass
           PY
 
+      - name: HF tokenını Supabase Vault'a OIDC ile aktar
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+
+          request_url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL']
+          request_token = os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']
+          separator = '&' if '?' in request_url else '?'
+          oidc_url = request_url + separator + urllib.parse.urlencode({'audience': 'game-qa-supabase-bootstrap'})
+          oidc_req = urllib.request.Request(
+              oidc_url,
+              headers={'Authorization': f'Bearer {request_token}', 'Accept': 'application/json'},
+          )
+          with urllib.request.urlopen(oidc_req, timeout=20) as response:
+              oidc_token = json.load(response)['value']
+
+          payload = json.dumps({'hf_token': os.environ['HF_QA_TOKEN']}).encode('utf-8')
+          bootstrap_req = urllib.request.Request(
+              os.environ['SUPABASE_SECRET_BOOTSTRAP_URL'],
+              data=payload,
+              method='POST',
+              headers={
+                  'Authorization': f'Bearer {oidc_token}',
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+              },
+          )
+          with urllib.request.urlopen(bootstrap_req, timeout=30) as response:
+              result = json.load(response)
+          if result.get('status') != 'ok' or 'HF_QA_TOKEN' not in result.get('stored', []):
+              raise SystemExit('Supabase Vault secret aktarımı doğrulanamadı.')
+          print('HF_QA_TOKEN Supabase Vault içinde güncellendi; secret değeri loglanmadı.')
+          PY
+
       - name: Sonuç
         run: |
           echo 'Hugging Face Storage Bucket bağlantısı hazır.'
+          echo 'HF_QA_TOKEN Supabase Vault ile senkronlandı.'
           echo 'Media/build dosyaları için hedef: hf://buckets/${{ env.HF_BUCKET_ID }}/projects/...'
 
   deploy-docker-space:
