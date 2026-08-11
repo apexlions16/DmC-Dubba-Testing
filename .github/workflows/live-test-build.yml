@@ -70,9 +70,9 @@ jobs:
           $api | Set-Content live-build/Admin/qa-api-endpoint.txt -Encoding ascii
 
           $launcherSettings = @{
-            apiBaseUrl = $release
+            api_base_url = $release
             channel = 'stable'
-            payloadExe = 'DmC.Qa.Tester.exe'
+            payload_exe = 'DmC.Qa.Tester.exe'
           } | ConvertTo-Json
           $launcherSettings | Set-Content live-build/Launcher/launcher.settings.json -Encoding utf8
 
@@ -81,7 +81,7 @@ jobs:
           Copy-Item live-build/Tester/* $versionDir -Recurse -Force
           @{
             version = $version
-            activatedAt = (Get-Date).ToUniversalTime().ToString('o')
+            activated_at = (Get-Date).ToUniversalTime().ToString('o')
           } | ConvertTo-Json | Set-Content live-build/Launcher/current.json -Encoding utf8
 
       - name: Canlı servis health kontrolü
@@ -115,6 +115,22 @@ jobs:
           Stop-Process -Id $tester.Id -Force
           Stop-Process -Id $admin.Id -Force
           Write-Host 'Tester/Admin startup smoke: OK'
+
+      - name: Launcher hazır payload açılış smoke
+        shell: pwsh
+        run: |
+          $launcher = Start-Process -FilePath (Resolve-Path 'live-build/Launcher/DmC.Qa.Launcher.exe') -PassThru
+          Start-Sleep -Seconds 12
+          if (-not $launcher.HasExited) {
+            Stop-Process -Id $launcher.Id -Force
+          }
+          $testerProcesses = Get-Process -Name 'DmC.Qa.Tester' -ErrorAction SilentlyContinue
+          if (-not $testerProcesses) {
+            Get-Content live-build/Launcher/launcher.log -ErrorAction SilentlyContinue
+            throw 'Launcher hazır tester payloadını başlatmadı.'
+          }
+          $testerProcesses | Stop-Process -Force
+          Write-Host 'Launcher preloaded payload smoke: OK'
 
       - name: Test rehberini ekle
         shell: pwsh
