@@ -1,0 +1,179 @@
+name: Live Supabase + HF Windows Test Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - 'src/Shared/**'
+      - 'src/TesterApp/**'
+      - 'src/AdminApp/**'
+      - 'src/Launcher/**'
+      - '.github/workflows/live-test-build.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-windows-test-build
+  cancel-in-progress: true
+
+env:
+  QA_API_URL: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-api/
+  QA_RELEASE_URL: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-releases/
+  INITIAL_VERSION: 0.1.0-live-test
+
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Tester self-contained publish
+        shell: pwsh
+        run: >-
+          dotnet publish src/TesterApp/TesterApp.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishTrimmed=false -o live-build/Tester
+
+      - name: Yönetim Merkezi self-contained publish
+        shell: pwsh
+        run: >-
+          dotnet publish src/AdminApp/AdminApp.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishTrimmed=false -o live-build/Admin
+
+      - name: Launcher self-contained publish
+        shell: pwsh
+        run: >-
+          dotnet publish src/Launcher/Launcher.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishTrimmed=false -o live-build/Launcher
+
+      - name: Canlı endpoint yapılandırmasını ekle
+        shell: pwsh
+        run: |
+          $api = '${{ env.QA_API_URL }}'
+          $release = '${{ env.QA_RELEASE_URL }}'
+          $version = '${{ env.INITIAL_VERSION }}'
+
+          $api | Set-Content live-build/Tester/qa-api-endpoint.txt -Encoding ascii
+          $api | Set-Content live-build/Admin/qa-api-endpoint.txt -Encoding ascii
+
+          $launcherSettings = @{
+            apiBaseUrl = $release
+            channel = 'stable'
+            payloadExe = 'DmC.Qa.Tester.exe'
+          } | ConvertTo-Json
+          $launcherSettings | Set-Content live-build/Launcher/launcher.settings.json -Encoding utf8
+
+          $versionDir = "live-build/Launcher/versions/$version"
+          New-Item -ItemType Directory -Force -Path $versionDir | Out-Null
+          Copy-Item live-build/Tester/* $versionDir -Recurse -Force
+          @{
+            version = $version
+            activatedAt = (Get-Date).ToUniversalTime().ToString('o')
+          } | ConvertTo-Json | Set-Content live-build/Launcher/current.json -Encoding utf8
+
+      - name: Canlı servis health kontrolü
+        shell: pwsh
+        run: |
+          $api = Invoke-RestMethod -Uri '${{ env.QA_API_URL }}' -TimeoutSec 30
+          if ($api.status -ne 'ok') { throw 'qa-api health başarısız.' }
+          $files = Invoke-RestMethod -Uri 'https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-files/' -TimeoutSec 30
+          if ($files.status -ne 'ok' -or $files.s3_ready -ne $true) { throw 'qa-files/HF S3 health başarısız.' }
+          $releases = Invoke-RestMethod -Uri '${{ env.QA_RELEASE_URL }}' -TimeoutSec 30
+          if ($releases.status -ne 'ok' -or $releases.s3_ready -ne $true) { throw 'qa-releases health başarısız.' }
+          Write-Host 'Supabase + HF servisleri canlı ve sağlıklı.'
+
+      - name: Tester ve Yönetim Merkezi gerçek EXE açılış smoke
+        shell: pwsh
+        run: |
+          $tester = Start-Process -FilePath (Resolve-Path 'live-build/Tester/DmC.Qa.Tester.exe') -PassThru
+          $admin = Start-Process -FilePath (Resolve-Path 'live-build/Admin/DmC.Qa.Admin.exe') -PassThru
+          Start-Sleep -Seconds 12
+
+          if ($tester.HasExited) {
+            $crash = Join-Path $env:LOCALAPPDATA 'GameQaClient/crash.log'
+            if (Test-Path $crash) { Get-Content $crash }
+            throw "Tester erken kapandı. ExitCode=$($tester.ExitCode)"
+          }
+          if ($admin.HasExited) {
+            $crash = Join-Path $env:LOCALAPPDATA 'GameQaAdmin/crash.log'
+            if (Test-Path $crash) { Get-Content $crash }
+            throw "Yönetim Merkezi erken kapandı. ExitCode=$($admin.ExitCode)"
+          }
+          Stop-Process -Id $tester.Id -Force
+          Stop-Process -Id $admin.Id -Force
+          Write-Host 'Tester/Admin startup smoke: OK'
+
+      - name: Test rehberini ekle
+        shell: pwsh
+        run: |
+          @'
+          GAME QA — CANLI SUPABASE + HUGGING FACE TEST BUILD
+          ==================================================
+
+          Bu paket yerel QA sunucusu kullanmaz. İnternet bağlantısı gerekir.
+
+          Tester hesabı:
+            Test Kullanıcısı
+
+          Yönetim Merkezi hesabı:
+            Yönetici
+
+          İkinci yönetici (iki-admin purge onayı için):
+            Yönetici 2
+
+          TESTER:
+          1. Tester/DmC.Qa.Tester.exe dosyasını açın.
+          2. "Test Kullanıcısı" yazın.
+          3. DmC projesini görmelisiniz.
+          4. Yönetici bir build yayınladıktan sonra uygulama içinden indirin.
+          5. Hata raporu + video gönderin. Video doğrudan Hugging Face bucket'a gider.
+          6. Yeniden test görevi geldikten sonra sonucu ve isterseniz video gönderin.
+
+          YÖNETİM MERKEZİ:
+          1. Admin/DmC.Qa.Admin.exe dosyasını açın.
+          2. "Yönetici" yazın.
+          3. Proje, ekip, bölüm, ortak görev, build, bug, retest, bildirim ve analytics ekranlarını kontrol edin.
+          4. Build yükleme doğrudan Hugging Face'e yapılır ve SHA-256 kaydedilir.
+          5. Eski build arşivlenince HF active -> archived taşıması server-side yapılır.
+
+          LAUNCHER:
+          Launcher/DmC.Qa.Launcher.exe aynı tester payload'ını açar ve stable sürüm manifestini kontrol eder.
+          İlk payload paket içine önceden konmuştur; ağdaki release kaydı olmasa da açılabilir.
+
+          KALICI PROJE SİLME:
+          Projeyi önce kapatın. Silme talebi proje adı + tek kullanımlık DELETE kodu ister.
+          Talebi açan yönetici kendi talebini onaylayamaz. İkinci yönetici gerekir.
+          Storage önce HF'den silinir; başarılı olursa Supabase DB cascade purge çalışır.
+          Global kullanıcı hesabı başka projelerde kullanılabileceği için korunur.
+          '@ | Set-Content live-build/TEST-BILGILERI-CANLI.txt -Encoding utf8
+
+      - name: Paket SHA-256 manifesti oluştur
+        shell: pwsh
+        run: |
+          Get-ChildItem live-build -Recurse -File | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $relative = $_.FullName.Substring((Resolve-Path 'live-build').Path.Length + 1)
+            "$hash  $relative"
+          } | Set-Content live-build/SHA256SUMS.txt -Encoding ascii
+
+      - name: Canlı Windows test artifactını yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameQA-Live-Supabase-HF-win-x64
+          path: live-build/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
