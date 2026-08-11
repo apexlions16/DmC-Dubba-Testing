@@ -1,0 +1,67 @@
+name: Live Client Release Smoke
+
+on:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - '.github/workflows/live-release-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  QA_API: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-api/
+  QA_RELEASES: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-releases/
+  HF_S3_ENDPOINT: https://s3.hf.co/xykeskin
+  HF_S3_BUCKET: dmc-turkish-dub-qa-archive
+
+jobs:
+  release-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.HF_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HF_S3_SECRET_KEY }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'requests>=2.32,<3' 'boto3>=1.35,<2'
+      - name: Release init -> HF PUT -> finalize -> public latest -> download
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, io, os, uuid, zipfile, requests, boto3
+          from botocore.config import Config
+          API=os.environ['QA_API']; REL=os.environ['QA_RELEASES']
+          def call(base,path='',method='GET',body=None,auth=None,redirects=True):
+              h={'Accept':'application/json'}
+              if auth:h['Authorization']=auth
+              r=requests.request(method,base+path,json=body,headers=h,timeout=60,allow_redirects=redirects)
+              if r.status_code>=400:
+                  try:d=r.json()
+                  except Exception:d=r.text[:800]
+                  raise RuntimeError(f'{method} {path}: {r.status_code}: {d}')
+              return r,(r.json() if r.content and 'json' in r.headers.get('content-type','') else None)
+          _,en=call(API,'auth/enroll','POST',{'display_name':'CI Yönetici','installation_id':'ci-live-direct-admin1-v1','device_name':'Release Smoke','client_kind':'admin'})
+          auth=f"Device {en['device_id']}.{en['credential']}"
+          version='0.0.0-ci-'+uuid.uuid4().hex[:10]
+          buf=io.BytesIO()
+          with zipfile.ZipFile(buf,'w',zipfile.ZIP_DEFLATED) as z:z.writestr('DmC.Qa.Tester.exe',b'CI-DUMMY-PAYLOAD')
+          payload=buf.getvalue(); sha=hashlib.sha256(payload).hexdigest()
+          _,init=call(REL,'client/releases/init','POST',{'channel':'beta','version':version,'title':'CI Release Smoke','filename':'ci-client.zip','size_bytes':len(payload),'sha256':sha},auth)
+          put=requests.put(init['upload_url'],data=payload,headers={'Content-Type':'application/zip'},timeout=90);put.raise_for_status()
+          _,done=call(REL,'client/releases/finalize','POST',{'release_id':init['release_id'],'storage_path':init['storage_path'],'channel':'beta','version':version,'title':'CI Release Smoke','notes':'Disposable CI release','minimum_version':None,'mandatory':False,'size_bytes':len(payload),'sha256':sha},auth)
+          assert done['version']==version and done['sha256']==sha
+          _,latest=call(REL,'client/releases/latest?channel=beta')
+          assert latest['version']==version and latest['artifact_url']
+          downloaded=requests.get(latest['artifact_url'],timeout=90).content
+          assert hashlib.sha256(downloaded).hexdigest()==sha and downloaded==payload
+          print('Release Center direct HF upload + public launcher manifest/download: OK')
+          # S3 byte'ını temizle; DB CI kaydı turn sonunda Supabase SQL ile temizlenecek.
+          s3=boto3.client('s3',endpoint_url=os.environ['HF_S3_ENDPOINT'],config=Config(region_name='us-east-1',s3={'addressing_style':'path'},request_checksum_calculation='when_required',response_checksum_validation='when_required'))
+          s3.delete_object(Bucket=os.environ['HF_S3_BUCKET'],Key=init['storage_path'])
+          print('CI release object cleanup: OK')
+          PY
