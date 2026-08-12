@@ -36,6 +36,8 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Build shared contracts
         run: dotnet build src/Shared/Shared.csproj -c Release
+      - name: Windows kanıt dosyası kilit regression smoke
+        run: dotnet run --project tools/DirectFileTransferSmoke/DirectFileTransferSmoke.csproj -c Release
       - name: Build tester client
         run: dotnet build src/TesterApp/TesterApp.csproj -c Release
       - name: Build admin client
