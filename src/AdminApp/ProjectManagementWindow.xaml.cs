@@ -18,10 +18,7 @@ public partial class ProjectManagementWindow : Window
         _api = api;
         _project = project;
         UsersList.ItemsSource = _users;
-        CurrentProjectText.Text = project?.Name ?? "Aktif proje yok";
-        SaveMembersButton.IsEnabled = project is not null;
-        SectionNameInput.IsEnabled = project is not null;
-        PurgeProjectButton.IsEnabled = project is not null;
+        UpdateProjectStateUi();
         Loaded += ProjectManagementWindow_Loaded;
     }
 
@@ -29,11 +26,36 @@ public partial class ProjectManagementWindow : Window
 
     private async void ProjectManagementWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        UiMotion.Reveal(ProjectRoot, 18);
         if (_project is null)
         {
             return;
         }
         await ReloadCurrentProjectAsync();
+    }
+
+    private void UpdateProjectStateUi()
+    {
+        var hasProject = _project is not null;
+        var isClosed = string.Equals(_project?.Status, "closed", StringComparison.OrdinalIgnoreCase);
+
+        CurrentProjectText.Text = _project?.Name ?? "Aktif proje yok";
+        CurrentProjectStatusText.Text = !hasProject ? "PROJE YOK" : isClosed ? "KAPALI" : "AKTİF";
+        ProjectStatusBadge.Background = new System.Windows.Media.SolidColorBrush(
+            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(
+                !hasProject ? "#182234" : isClosed ? "#351821" : "#173324"));
+        ProjectStatusBadge.BorderBrush = new System.Windows.Media.SolidColorBrush(
+            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(
+                !hasProject ? "#40506A" : isClosed ? "#9C4355" : "#2D8C62"));
+        CurrentProjectStatusText.Foreground = new System.Windows.Media.SolidColorBrush(
+            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(
+                !hasProject ? "#9AA9C2" : isClosed ? "#FF9EAA" : "#8EF0BB"));
+
+        SaveMembersButton.IsEnabled = hasProject && !isClosed;
+        SectionNameInput.IsEnabled = hasProject && !isClosed;
+        CloseProjectButton.IsEnabled = hasProject && !isClosed;
+        CloseProjectButton.Content = isClosed ? "Proje Kapalı" : "Projeyi Kapat";
+        PurgeProjectButton.IsEnabled = hasProject;
     }
 
     private async Task ReloadCurrentProjectAsync()
@@ -100,12 +122,73 @@ public partial class ProjectManagementWindow : Window
         }
     }
 
-    private void PurgeProjectButton_Click(object sender, RoutedEventArgs e)
+    private async void CloseProjectButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_project is null || string.Equals(_project.Status, "closed", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (MessageBox.Show(
+                $"'{_project.Name}' projesini kapatmak istiyor musunuz?\n\nKapatma işlemi hiçbir veriyi silmez. Tester erişimi ve yeni operasyonlar durdurulur; daha sonra kalıcı silme yapılabilir.",
+                "Projeyi Kapat",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        CloseProjectButton.IsEnabled = false;
+        try
+        {
+            await _api.CloseProjectAsync(_project.Id);
+            _project = _project with { Status = "closed" };
+            SelectedProjectId = _project.Id;
+            UpdateProjectStateUi();
+            UiMotion.Pulse(ProjectStatusBadge);
+            MessageBox.Show("Proje kapatıldı. Veri silinmedi; artık isterseniz güvenli kalıcı silme akışını başlatabilirsiniz.", "Proje Kapalı", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (QaApiException ex)
+        {
+            MessageBox.Show(ex.Message, "Proje Kapatılamadı", MessageBoxButton.OK, MessageBoxImage.Error);
+            UpdateProjectStateUi();
+        }
+    }
+
+    private async void PurgeProjectButton_Click(object sender, RoutedEventArgs e)
     {
         if (_project is null)
         {
             MessageBox.Show("Kalıcı silme için önce bir proje seçin.", "Proje Seçilmedi", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
+        }
+
+        if (!string.Equals(_project.Status, "closed", StringComparison.OrdinalIgnoreCase))
+        {
+            var closeFirst = MessageBox.Show(
+                $"'{_project.Name}' projesi hâlâ aktif.\n\nKalıcı silme için önce proje kapatılmalıdır. Şimdi projeyi kapatıp silme ekranına devam edilsin mi?",
+                "Önce Projeyi Kapat",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            if (closeFirst != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                await _api.CloseProjectAsync(_project.Id);
+                _project = _project with { Status = "closed" };
+                SelectedProjectId = _project.Id;
+                UpdateProjectStateUi();
+            }
+            catch (QaApiException ex)
+            {
+                MessageBox.Show(ex.Message, "Proje Kapatılamadı", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
         }
 
         var window = new PurgeWindow(_api, _project)
@@ -115,7 +198,9 @@ public partial class ProjectManagementWindow : Window
         window.ShowDialog();
         if (window.ProjectPurged)
         {
+            _project = null;
             SelectedProjectId = null;
+            UpdateProjectStateUi();
             DialogResult = true;
             Close();
         }
