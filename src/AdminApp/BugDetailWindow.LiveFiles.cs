@@ -23,6 +23,7 @@ public partial class BugDetailWindow
         EvidenceList.MouseDoubleClick += EvidenceList_LiveMouseDoubleClick;
         DeleteEvidenceButton.Visibility = _canAdminister ? Visibility.Visible : Visibility.Collapsed;
         DeleteEvidenceButton.IsEnabled = _canAdminister && EvidenceList.SelectedItem is EvidenceItem;
+        InitializePermanentBugDeleteAction();
     }
 
     private async void EvidenceList_LiveMouseDoubleClick(object sender, MouseButtonEventArgs e)
