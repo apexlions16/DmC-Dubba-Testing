@@ -147,6 +147,13 @@ public partial class BugReportWindow : Window
                 SubmitButton.Content = "Raporu Gönder";
             }
         }
+        catch (IOException)
+        {
+            StatusText.Text = _createdBug is null
+                ? "Kanıt dosyası başka bir program tarafından kullanılıyor. Dosyayı kullanan programı kapatıp tekrar deneyin."
+                : $"{_createdBug.Key} oluşturuldu ancak kanıt dosyası başka bir program tarafından kullanıldığı için yüklenemedi.";
+            SubmitButton.Content = _createdBug is null ? "Raporu Gönder" : "Videoyu Tekrar Yükle";
+        }
         catch (HttpRequestException)
         {
             StatusText.Text = _createdBug is null
