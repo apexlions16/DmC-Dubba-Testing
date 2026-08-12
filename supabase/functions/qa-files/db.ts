@@ -6,6 +6,7 @@ export async function rows(table:string,q=''):Promise<any[]>{return await rest(`
 export async function one(table:string,q:string){const d=await rows(table,q);return d[0]??null;}
 export async function insert(table:string,b:any){const d=await rest(table,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(b)});return Array.isArray(d)?d[0]:d;}
 export async function patch(table:string,f:string,b:any){return await rest(`${table}?${f}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(b)})||[];}
+export async function del(table:string,f:string){return await rest(`${table}?${f}`,{method:'DELETE',headers:{Prefer:'return=representation'}})||[];}
 export async function rpc(name:string,b:any){return await rest(`rpc/${name}`,{method:'POST',body:JSON.stringify(b)});}
 export const enc=(s:string)=>encodeURIComponent(s);export const eq=(s:string)=>`eq.${enc(s)}`;
 export async function sha256Hex(input:string|Uint8Array){const bytes=typeof input==='string'?new TextEncoder().encode(input):input;const d=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));return[...d].map(b=>b.toString(16).padStart(2,'0')).join('');}
