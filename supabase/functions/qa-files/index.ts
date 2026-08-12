@@ -1,6 +1,6 @@
-import { ApiError, del, eq, insert, json, one, patch, rows } from './db.ts';
+import { ApiError, del, eq, insert, json, one, patch, rows, rpc } from './db.ts';
 import { authenticate, canBuild, isAdmin, projectAccess } from './auth.ts';
-import { deleteObject, headObject, moveObject, presign, ready } from './s3.ts';
+import { deleteObject, deletePrefix, headObject, moveObject, presign, ready } from './s3.ts';
 
 function route(req:Request){const p=new URL(req.url).pathname,m='/qa-files',i=p.indexOf(m);return(i>=0?p.slice(i+m.length):p)||'/';}
 async function body(req:Request){try{return await req.json();}catch{return {};}}
@@ -42,6 +42,12 @@ Deno.serve(async req=>{try{
   if(m&&req.method==='GET'){const a=await one('evidence_assets',`select=id,project_id,storage_path&id=${eq(m[1])}`);if(!a)throw new ApiError(404,'Kanıt dosyası bulunamadı.');await projectAccess(u,a.project_id);return new Response(null,{status:302,headers:{Location:await presign('GET',a.storage_path,3600)}});}
   m=r.match(/^\/evidence\/([^/]+)$/);
   if(m&&req.method==='DELETE'){if(!isAdmin(u))throw new ApiError(403,'Kanıt dosyasını yalnızca yönetici kalıcı olarak silebilir.');const a=await one('evidence_assets',`select=id,project_id,storage_path,original_filename&id=${eq(m[1])}`);if(!a)throw new ApiError(404,'Kanıt dosyası bulunamadı.');await projectAccess(u,a.project_id,true);const prefix=`projects/${a.project_id}/`;if(!String(a.storage_path||'').startsWith(prefix))throw new ApiError(409,'Kanıt storage yolu proje alanıyla eşleşmiyor.');await deleteObject(String(a.storage_path));const removed=await del('evidence_assets',`id=${eq(a.id)}&project_id=${eq(a.project_id)}`);if(!removed.length)throw new ApiError(502,'Kanıt dosyası HF’den silindi ancak veritabanı kaydı kaldırılamadı.');return json({status:'deleted',id:a.id,filename:a.original_filename});}
+
+  m=r.match(/^\/bugs\/([^/]+)$/);
+  if(m&&req.method==='DELETE'){if(!isAdmin(u))throw new ApiError(403,'Hata raporunu yalnızca yönetici kalıcı olarak silebilir.');const b=await bug(m[1]);await projectAccess(u,b.project_id,true);const retests=await rows('retest_requests',`select=id&bug_report_id=${eq(b.id)}`);await deletePrefix(`projects/${b.project_id}/reports/${b.public_key}/`);for(const rr of retests)await deletePrefix(`projects/${b.project_id}/retests/${rr.id}/`);await del('evidence_assets',`project_id=${eq(b.project_id)}&owner_type=eq.bug_report&owner_id=${eq(b.id)}`);for(const rr of retests)await del('evidence_assets',`project_id=${eq(b.project_id)}&owner_type=eq.retest_request&owner_id=${eq(rr.id)}`);const removed=await del('bug_reports',`id=${eq(b.id)}&project_id=${eq(b.project_id)}`);if(!removed.length)throw new ApiError(502,'Hata raporu veritabanından silinemedi.');return json({status:'deleted',id:b.id,key:b.public_key});}
+
+  m=r.match(/^\/projects\/([^/]+)$/);
+  if(m&&req.method==='DELETE'){if(!isAdmin(u))throw new ApiError(403,'Projeyi yalnızca yönetici kalıcı olarak silebilir.');const p=await one('projects',`select=id,name,status&id=${eq(m[1])}`);if(!p)throw new ApiError(404,'Proje bulunamadı.');const x=await body(req);if(String(x.project_name||'')!==p.name)throw new ApiError(400,'Proje adı doğrulaması eşleşmiyor.');if(p.status!=='closed'&&p.status!=='purge_pending')await patch('projects',`id=${eq(p.id)}`,{status:'closed',closed_at:new Date().toISOString()});const deletedStorage=await deletePrefix(`projects/${p.id}/`);await rpc('qa_finalize_project_purge',{p_project_id:p.id,p_requested_by:u.id,p_approved_by:u.id,p_storage_deleted_bytes:deletedStorage.bytes});await del('project_purge_audits',`project_id=${eq(p.id)}`);return json({status:'deleted',project_id:p.id,storage_deleted_bytes:deletedStorage.bytes,storage_deleted_objects:deletedStorage.count});}
 
   throw new ApiError(404,'Dosya API yolu bulunamadı.');
 }catch(e){if(e instanceof ApiError)return json({detail:e.message},e.status);console.error('qa-files',e);return json({detail:'Dosya servisinde beklenmeyen bir hata oluştu.'},500);}});
