@@ -51,6 +51,7 @@ public partial class BugDetailWindow : Window
         };
         SaveStatusButton.IsEnabled = canAdminister;
         RetestButton.IsEnabled = canAdminister;
+        InitializeQuickStatusActions();
         InitializePlayerControls();
         Loaded += BugDetailWindow_Loaded;
         Closed += (_, _) =>
@@ -95,6 +96,7 @@ public partial class BugDetailWindow : Window
             VideoStatusText.Text = _detail.Evidence.Count == 0
                 ? "Video/kanıt yok"
                 : $"{_detail.Evidence.Count} dosya";
+            UpdateQuickStatusActions();
         }
         catch (Exception ex) when (ex is QaApiException or HttpRequestException or TaskCanceledException)
         {
