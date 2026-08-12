@@ -199,33 +199,36 @@ internal static class DirectFileTransfer
         var temporaryPath = destinationPath + ".part";
         try
         {
-            await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var output = new FileStream(
-                temporaryPath,
-                FileMode.Create,
-                FileAccess.Write,
-                FileShare.None,
-                1024 * 1024,
-                FileOptions.Asynchronous | FileOptions.SequentialScan);
-            using var sha = SHA256.Create();
-            var total = response.Content.Headers.ContentLength;
-            var buffer = new byte[1024 * 1024];
-            long copied = 0;
-            int read;
-            while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
+            string actual;
+            await using (var input = await response.Content.ReadAsStreamAsync(cancellationToken))
             {
-                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-                sha.TransformBlock(buffer, 0, read, null, 0);
-                copied += read;
-                if (total is > 0)
+                await using var output = new FileStream(
+                    temporaryPath,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None,
+                    1024 * 1024,
+                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+                using var sha = SHA256.Create();
+                var total = response.Content.Headers.ContentLength;
+                var buffer = new byte[1024 * 1024];
+                long copied = 0;
+                int read;
+                while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
                 {
-                    progress?.Report(Math.Min(100, copied * 100d / total.Value));
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                    sha.TransformBlock(buffer, 0, read, null, 0);
+                    copied += read;
+                    if (total is > 0)
+                    {
+                        progress?.Report(Math.Min(100, copied * 100d / total.Value));
+                    }
                 }
+                sha.TransformFinalBlock([], 0, 0);
+                await output.FlushAsync(cancellationToken);
+                actual = Convert.ToHexString(sha.Hash!).ToLowerInvariant();
             }
-            sha.TransformFinalBlock([], 0, 0);
-            await output.FlushAsync(cancellationToken);
 
-            var actual = Convert.ToHexString(sha.Hash!).ToLowerInvariant();
             if (!string.IsNullOrWhiteSpace(expectedSha256) &&
                 !string.Equals(actual, expectedSha256.Trim(), StringComparison.OrdinalIgnoreCase))
             {
