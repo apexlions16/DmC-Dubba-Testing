@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 namespace DmC.Qa.Shared;
@@ -115,13 +116,46 @@ public static class LiveFileApiExtensions
             throw new QaApiException("Kanıtı kalıcı silme işlemi yalnızca canlı Supabase + Hugging Face backend'inde kullanılabilir.");
         }
 
-        using var http = new HttpClient
-        {
-            BaseAddress = filesBase,
-            Timeout = TimeSpan.FromMinutes(5)
-        };
-        ApplyAuthorization(http, client.DeviceAuthorization);
+        using var http = CreateLiveHttp(filesBase, client.DeviceAuthorization, TimeSpan.FromMinutes(5));
         using var response = await http.DeleteAsync($"evidence/{assetId}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public static async Task DeleteBugForCurrentBackendAsync(
+        this PlatformApiClient client,
+        string bugId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!DirectFileTransfer.TryResolveFilesBase(client.BaseAddress, out var filesBase))
+        {
+            throw new QaApiException("Hata raporunu kalıcı silme işlemi yalnızca canlı Supabase + Hugging Face backend'inde kullanılabilir.");
+        }
+
+        using var http = CreateLiveHttp(filesBase, client.DeviceAuthorization, TimeSpan.FromMinutes(10));
+        using var response = await http.DeleteAsync($"bugs/{bugId}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public static async Task DeleteProjectForCurrentBackendAsync(
+        this PlatformApiClient client,
+        string projectId,
+        string exactProjectName,
+        CancellationToken cancellationToken = default)
+    {
+        if (!DirectFileTransfer.TryResolveFilesBase(client.BaseAddress, out var filesBase))
+        {
+            throw new QaApiException("Projeyi kalıcı silme işlemi yalnızca canlı Supabase + Hugging Face backend'inde kullanılabilir.");
+        }
+
+        using var http = CreateLiveHttp(filesBase, client.DeviceAuthorization, TimeSpan.FromMinutes(30));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"projects/{projectId}")
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(new { project_name = exactProjectName }),
+                Encoding.UTF8,
+                "application/json")
+        };
+        using var response = await http.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
@@ -137,17 +171,23 @@ public static class LiveFileApiExtensions
             return;
         }
 
-        using var http = new HttpClient
-        {
-            BaseAddress = filesBase,
-            Timeout = TimeSpan.FromMinutes(10)
-        };
-        ApplyAuthorization(http, client.DeviceAuthorization);
+        using var http = CreateLiveHttp(filesBase, client.DeviceAuthorization, TimeSpan.FromMinutes(10));
         using var response = await http.PostAsync(
             $"projects/{projectId}/builds/{buildId}/archive",
             null,
             cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    private static HttpClient CreateLiveHttp(Uri baseAddress, string? authorization, TimeSpan timeout)
+    {
+        var http = new HttpClient
+        {
+            BaseAddress = baseAddress,
+            Timeout = timeout
+        };
+        ApplyAuthorization(http, authorization);
+        return http;
     }
 
     private static void ApplyAuthorization(HttpClient http, string? authorization)
