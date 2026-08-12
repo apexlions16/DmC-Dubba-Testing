@@ -75,6 +75,12 @@ public partial class App : Application
                 "/DmC.Qa.Admin;component/Themes/DarkComboBox.xaml",
                 UriKind.Relative)
         });
+        Resources.MergedDictionaries.Add(new ResourceDictionary
+        {
+            Source = new Uri(
+                "/DmC.Qa.Admin;component/Themes/DarkInputs.xaml",
+                UriKind.Relative)
+        });
     }
 
     private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
