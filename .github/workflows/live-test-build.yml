@@ -10,6 +10,7 @@ on:
       - 'src/TesterApp/**'
       - 'src/AdminApp/**'
       - 'src/Launcher/**'
+      - 'tools/DirectFileTransferSmoke/**'
       - '.github/workflows/live-test-build.yml'
 
 permissions:
@@ -34,6 +35,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
+      - name: Windows kanıt dosyası kilit regression smoke
+        run: dotnet run --project tools/DirectFileTransferSmoke/DirectFileTransferSmoke.csproj -c Release
 
       - name: Tester self-contained publish
         shell: pwsh
