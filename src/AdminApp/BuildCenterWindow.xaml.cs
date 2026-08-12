@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using Microsoft.Win32;
 using DmC.Qa.Shared;
@@ -96,6 +97,15 @@ public partial class BuildCenterWindow : Window
             FileInput.Clear();
             _filePath = null;
             await ReloadAsync();
+        }
+        catch (IOException)
+        {
+            UploadStatus.Text = "Seçilen dosya başka bir program tarafından kullanılıyor. Dosyayı kullanan programı kapatıp tekrar deneyin.";
+            MessageBox.Show(
+                UploadStatus.Text,
+                "Test Sürümü Yüklenemedi",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
         catch (QaApiException ex)
         {
