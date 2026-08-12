@@ -51,8 +51,13 @@ public partial class BugDetailWindow : Window
         };
         SaveStatusButton.IsEnabled = canAdminister;
         RetestButton.IsEnabled = canAdminister;
+        InitializePlayerControls();
         Loaded += BugDetailWindow_Loaded;
-        Closed += (_, _) => VideoPlayer.Close();
+        Closed += (_, _) =>
+        {
+            ShutdownPlayerControls();
+            VideoPlayer.Close();
+        };
     }
 
     public bool Changed { get; private set; }
@@ -174,14 +179,21 @@ public partial class BugDetailWindow : Window
         if (VideoPlayer.Source is not null)
         {
             VideoPlayer.Play();
+            SetPlayerPlayingState(true);
         }
     }
 
-    private void Pause_Click(object sender, RoutedEventArgs e) => VideoPlayer.Pause();
+    private void Pause_Click(object sender, RoutedEventArgs e)
+    {
+        VideoPlayer.Pause();
+        SetPlayerPlayingState(false);
+    }
 
     private void Stop_Click(object sender, RoutedEventArgs e)
     {
         VideoPlayer.Stop();
+        SetPlayerPlayingState(false);
+        UpdateSeekFromPlayer();
         VideoStatusText.Text = string.IsNullOrWhiteSpace(_currentVideoPath) ? "Video seçilmedi" : "Durduruldu";
     }
 
@@ -191,6 +203,9 @@ public partial class BugDetailWindow : Window
         {
             VideoPlayer.Position = TimeSpan.FromSeconds(seconds);
             VideoPlayer.Play();
+            SetPlayerPlayingState(true);
+            UpdateSeekFromPlayer();
+            VideoStatusText.Text = $"Hata anına gidildi • {FormatPlayerTime(VideoPlayer.Position)}";
         }
     }
 
