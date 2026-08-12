@@ -80,7 +80,7 @@
                         <Border Grid.Row="1" Style="{StaticResource DangerCardStyle}" Margin="0,12,0,0" Padding="16">
                             <StackPanel>
                                 <TextBlock Text="KALICI SİLME NASIL ÇALIŞIR?" Foreground="#FF9AA6" FontWeight="Bold" FontSize="10"/>
-                                <TextBlock Text="Kalıcı silme HF üzerindeki proje dosyalarını ve Supabase'deki proje verilerini kaldırır. İşlem iki farklı yönetici onayı ister; başka projeler ve global kullanıcı hesapları etkilenmez."
+                                <TextBlock Text="Tek bir yönetici proje adını birebir doğrulayarak kalıcı silmeyi tamamlayabilir. Önce HF üzerindeki proje dosyaları, ardından Supabase'deki proje verileri kaldırılır. Başka projeler ve global kullanıcı hesapları etkilenmez."
                                            Foreground="#D2A9B0" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
