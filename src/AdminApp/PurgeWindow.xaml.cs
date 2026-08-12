@@ -22,6 +22,7 @@ public partial class PurgeWindow : Window
 
     private async void PurgeWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        UiMotion.Reveal(PurgeRoot, 18);
         if (_project is not null)
         {
             try
@@ -42,7 +43,7 @@ public partial class PurgeWindow : Window
         }
         else
         {
-            PreviewText.Text = "Sol taraftan mevcut bir proje seçilmeden yeni silme talebi oluşturulamaz. İkinci yönetici onayı yine bu ekrandan yapılabilir.";
+            PreviewText.Text = "Mevcut bir proje seçilmeden yeni silme talebi oluşturulamaz. İkinci yönetici onayı yine bu ekrandan yapılabilir.";
             CreateRequestButton.IsEnabled = false;
         }
         await ReloadRequestsAsync();
@@ -68,7 +69,7 @@ public partial class PurgeWindow : Window
             return;
         }
         var confirm = MessageBox.Show(
-            "Bu işlem henüz dosya silmez ancak ikinci bir yöneticinin kalıcı silme yapabilmesi için kritik talep oluşturur. Devam edilsin mi?",
+            "Bu adım henüz dosya silmez; ikinci bir yöneticinin kalıcı silmeyi onaylayabilmesi için kritik talep oluşturur. Devam edilsin mi?",
             "Kalıcı Silme Talebi",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
@@ -87,6 +88,7 @@ public partial class PurgeWindow : Window
                 DeleteTombstoneCheck.IsChecked == true);
             ConfirmationCodeText.Text = created.ConfirmationCode;
             CodePanel.Visibility = Visibility.Visible;
+            UiMotion.Reveal(CodePanel, 10);
             await ReloadRequestsAsync();
         }
         catch (QaApiException ex)
@@ -113,7 +115,7 @@ public partial class PurgeWindow : Window
             return;
         }
         var finalConfirm = MessageBox.Show(
-            "Bu ikinci onaydır. Doğrulama başarılı olursa seçilen proje için işaretlenen storage ve veritabanı verileri kalıcı olarak silinir. Geri alınamaz. Devam edilsin mi?",
+            "Bu ikinci ve son onaydır. HF dosyaları ile işaretlenen Supabase proje verileri kalıcı olarak silinecektir. Bu işlem geri alınamaz. Devam edilsin mi?",
             "SON KALICI SİLME ONAYI",
             MessageBoxButton.YesNo,
             MessageBoxImage.Stop);
@@ -122,13 +124,25 @@ public partial class PurgeWindow : Window
             return;
         }
         ApproveButton.IsEnabled = false;
-        ApprovalStatusText.Text = "Kalıcı silme işlemi uygulanıyor...";
+        ApprovalStatusText.Text = "HF ve Supabase verileri kalıcı olarak temizleniyor...";
         try
         {
             await _api.ApprovePurgeRequestAsync(row.Source.Id, ApproveProjectNameInput.Text.Trim(), ApproveCodeInput.Text.Trim());
             ProjectPurged = _project?.Id == row.Source.ProjectId;
-            ApprovalStatusText.Text = "Kalıcı silme tamamlandı.";
-            MessageBox.Show("Proje için kalıcı silme tamamlandı.", "Silme Tamamlandı", MessageBoxButton.OK, MessageBoxImage.Information);
+            ApprovalStatusText.Text = "Kalıcı silme tamamlandı. Proje artık uygulama verilerinde bulunmuyor.";
+            MessageBox.Show(
+                "Kalıcı silme tamamlandı. Proje dosyaları ve seçilen veritabanı kayıtları kaldırıldı; proje uygulama listesinden de çıkarılacak.",
+                "Silme Tamamlandı",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+
+            if (ProjectPurged)
+            {
+                DialogResult = true;
+                Close();
+                return;
+            }
+
             await ReloadRequestsAsync();
         }
         catch (QaApiException ex)
@@ -138,7 +152,10 @@ public partial class PurgeWindow : Window
         }
         finally
         {
-            ApproveButton.IsEnabled = true;
+            if (IsVisible)
+            {
+                ApproveButton.IsEnabled = true;
+            }
         }
     }
 
