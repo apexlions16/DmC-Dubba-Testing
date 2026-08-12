@@ -1,0 +1,276 @@
+name: Hugging Face Storage Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_space:
+        description: 'Docker Space deploy denemesi yap (HF PRO gerekir)'
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - 'src/api/**'
+      - '.github/workflows/deploy-hf.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: hf-storage-verify
+  cancel-in-progress: true
+
+env:
+  HF_SPACE_ID: xykeskin/dmc-qa-platform-api
+  HF_BUCKET_ID: xykeskin/dmc-turkish-dub-qa-archive
+  HF_SPACE_URL: https://xykeskin-dmc-qa-platform-api.hf.space
+  SUPABASE_SECRET_BOOTSTRAP_URL: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-secret-bootstrap
+
+jobs:
+  verify-hf-bucket:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HF_QA_TOKEN: ${{ secrets.HF_QA_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: HF bağımlılıklarını kur
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'huggingface_hub>=0.34,<2'
+
+      - name: GitHub HF secretını doğrula
+        shell: bash
+        run: |
+          if [ -z "$HF_QA_TOKEN" ]; then
+            echo 'HF_QA_TOKEN GitHub Actions secretı bulunamadı.' >&2
+            exit 1
+          fi
+          echo 'HF_QA_TOKEN mevcut. Değeri loglanmayacak.'
+
+      - name: HF bucket write ve delete probe
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import tempfile
+          from uuid import uuid4
+          from huggingface_hub import batch_bucket_files
+
+          token = os.environ['HF_QA_TOKEN']
+          bucket = os.environ['HF_BUCKET_ID']
+          remote = f'_system/github-deploy-probes/{uuid4().hex}.txt'
+          local = None
+          uploaded = False
+          try:
+              with tempfile.NamedTemporaryFile('w', encoding='utf-8', delete=False) as f:
+                  local = f.name
+                  f.write('Game QA Platform GitHub Actions HF bucket probe\n')
+              batch_bucket_files(bucket, add=[(local, remote)], token=token)
+              uploaded = True
+              batch_bucket_files(bucket, delete=[remote], token=token)
+              uploaded = False
+              print(f'Bucket write/delete doğrulandı: {bucket}')
+          finally:
+              if uploaded:
+                  try:
+                      batch_bucket_files(bucket, delete=[remote], token=token)
+                  except Exception:
+                      pass
+              if local:
+                  try:
+                      os.remove(local)
+                  except FileNotFoundError:
+                      pass
+          PY
+
+      - name: HF tokenını Supabase Vault'a OIDC ile aktar
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+
+          request_url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL']
+          request_token = os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']
+          separator = '&' if '?' in request_url else '?'
+          oidc_url = request_url + separator + urllib.parse.urlencode({'audience': 'game-qa-supabase-bootstrap'})
+          oidc_req = urllib.request.Request(
+              oidc_url,
+              headers={'Authorization': f'Bearer {request_token}', 'Accept': 'application/json'},
+          )
+          with urllib.request.urlopen(oidc_req, timeout=20) as response:
+              oidc_token = json.load(response)['value']
+
+          payload = json.dumps({'hf_token': os.environ['HF_QA_TOKEN']}).encode('utf-8')
+          bootstrap_req = urllib.request.Request(
+              os.environ['SUPABASE_SECRET_BOOTSTRAP_URL'],
+              data=payload,
+              method='POST',
+              headers={
+                  'Authorization': f'Bearer {oidc_token}',
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+              },
+          )
+          with urllib.request.urlopen(bootstrap_req, timeout=30) as response:
+              result = json.load(response)
+          if result.get('status') != 'ok' or 'HF_QA_TOKEN' not in result.get('stored', []):
+              raise SystemExit('Supabase Vault secret aktarımı doğrulanamadı.')
+          print('HF_QA_TOKEN Supabase Vault içinde güncellendi; secret değeri loglanmadı.')
+          PY
+
+      - name: Sonuç
+        run: |
+          echo 'Hugging Face Storage Bucket bağlantısı hazır.'
+          echo 'HF_QA_TOKEN Supabase Vault ile senkronlandı.'
+          echo 'Media/build dosyaları için hedef: hf://buckets/${{ env.HF_BUCKET_ID }}/projects/...'
+
+  deploy-docker-space:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_space }}
+    needs: verify-hf-bucket
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HF_QA_TOKEN: ${{ secrets.HF_QA_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'huggingface_hub>=0.34,<2' requests
+
+      - name: Docker Space oluştur ve backend kodunu yükle
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import secrets
+          from huggingface_hub import HfApi
+
+          token = os.environ['HF_QA_TOKEN']
+          space_id = os.environ['HF_SPACE_ID']
+          bucket_id = os.environ['HF_BUCKET_ID']
+          api = HfApi(token=token)
+
+          api.create_repo(
+              repo_id=space_id,
+              repo_type='space',
+              space_sdk='docker',
+              exist_ok=True,
+              private=False,
+          )
+
+          existing_secrets = api.get_space_secrets(space_id)
+          api.add_space_secret(space_id, key='HF_TOKEN', value=token)
+          if 'DEVICE_CREDENTIAL_SECRET' not in existing_secrets:
+              api.add_space_secret(
+                  space_id,
+                  key='DEVICE_CREDENTIAL_SECRET',
+                  value=secrets.token_urlsafe(64),
+              )
+
+          variables = {
+              'APP_NAME': 'Oyun QA Platformu',
+              'ENVIRONMENT': 'staging',
+              'STORAGE_MODE': 'hf',
+              'HF_BUCKET_ID': bucket_id,
+              'DATABASE_URL': 'sqlite:///./qa-platform.db',
+              'LOCAL_TEST_MODE': 'true',
+              'LOCAL_TEST_ADMIN_NAME': 'Yönetici',
+              'LOCAL_TEST_TESTER_NAME': 'Test Kullanıcısı',
+          }
+          for key, value in variables.items():
+              api.add_space_variable(space_id, key=key, value=value)
+
+          api.upload_folder(
+              repo_id=space_id,
+              repo_type='space',
+              folder_path='src/api',
+              ignore_patterns=['.env', '*.db', 'qa-storage/**', '**/__pycache__/**', '**/*.pyc'],
+          )
+          print(f'HF Space senkronlandı: {space_id}')
+          PY
+
+      - name: HF Space health bekle
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import time
+          import requests
+
+          base = os.environ['HF_SPACE_URL'].rstrip('/')
+          deadline = time.time() + 15 * 60
+          last = None
+          while time.time() < deadline:
+              try:
+                  health = requests.get(base + '/health', timeout=10)
+                  storage = requests.get(base + '/health/storage', timeout=15)
+                  if health.ok and storage.ok:
+                      hp = health.json()
+                      sp = storage.json()
+                      if hp.get('status') == 'ok' and sp.get('mode') == 'hf' and sp.get('bucket_reachable'):
+                          print('HF Space ve bucket health doğrulandı.')
+                          raise SystemExit(0)
+                  last = f'health={health.status_code}, storage={storage.status_code}'
+              except Exception as exc:
+                  last = type(exc).__name__
+              time.sleep(10)
+          raise SystemExit(f'HF Space zamanında hazır olmadı. Son durum: {last}')
+          PY
+
+  package-hf-connected-windows:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_space }}
+    needs: deploy-docker-space
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Tester uygulamasını HF bağlantılı yayınla
+        shell: pwsh
+        run: >-
+          dotnet publish src/TesterApp/TesterApp.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishTrimmed=false -o hf-artifacts/Tester
+
+      - name: Yönetim Merkezi'ni HF bağlantılı yayınla
+        shell: pwsh
+        run: >-
+          dotnet publish src/AdminApp/AdminApp.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishTrimmed=false -o hf-artifacts/Admin
+
+      - name: HF Space endpoint config dosyasını ekle
+        shell: pwsh
+        run: |
+          '${{ env.HF_SPACE_URL }}/' | Set-Content hf-artifacts/Tester/qa-api-endpoint.txt -Encoding ascii
+          '${{ env.HF_SPACE_URL }}/' | Set-Content hf-artifacts/Admin/qa-api-endpoint.txt -Encoding ascii
+
+      - name: HF bağlı istemci artifactını yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameQA-HF-Connected-win-x64
+          path: hf-artifacts/
+          if-no-files-found: error
+          retention-days: 30

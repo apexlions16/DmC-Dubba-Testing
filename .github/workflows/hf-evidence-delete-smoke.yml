@@ -1,0 +1,160 @@
+name: HF Evidence Permanent Delete Smoke
+
+on:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - '.github/workflows/hf-evidence-delete-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  QA_API: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-api/
+  QA_FILES: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-files/
+  HF_S3_ENDPOINT: https://s3.hf.co/xykeskin
+  HF_S3_BUCKET: dmc-turkish-dub-qa-archive
+
+jobs:
+  evidence-delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      HF_S3_ACCESS_KEY: ${{ secrets.HF_S3_ACCESS_KEY }}
+      HF_S3_SECRET_KEY: ${{ secrets.HF_S3_SECRET_KEY }}
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Bağımlılıkları kur
+        run: pip install 'requests>=2.32,<3' 'boto3>=1.35,<2'
+
+      - name: Kanıt upload + kalıcı delete smoke
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import os
+          import uuid
+          import requests
+          import boto3
+          from botocore.config import Config
+          from botocore.exceptions import ClientError
+
+          API=os.environ['QA_API']
+          FILES=os.environ['QA_FILES']
+          BUCKET=os.environ['HF_S3_BUCKET']
+          ENDPOINT=os.environ['HF_S3_ENDPOINT']
+
+          def call(base,path='',method='GET',body=None,auth=None,expected=None):
+              headers={'Accept':'application/json'}
+              if auth: headers['Authorization']=auth
+              r=requests.request(method,base+path,json=body,headers=headers,timeout=60,allow_redirects=False)
+              if expected is not None:
+                  assert r.status_code==expected, (method,path,r.status_code,r.text[:1000])
+              elif r.status_code>=400:
+                  raise RuntimeError(f'{method} {path}: HTTP {r.status_code}: {r.text[:1000]}')
+              data=None
+              if r.content and 'json' in r.headers.get('content-type',''):
+                  data=r.json()
+              return r,data
+
+          def enroll(name,installation,kind):
+              _,d=call(API,'auth/enroll','POST',{
+                  'display_name':name,
+                  'installation_id':installation,
+                  'device_name':'GitHub Evidence Delete Smoke',
+                  'client_kind':kind,
+              })
+              return f"Device {d['device_id']}.{d['credential']}"
+
+          tester=enroll('CI Tester','ci-evidence-delete-tester-v1','tester')
+          admin1=enroll('CI Yönetici','ci-evidence-delete-admin1-v1','admin')
+          admin2=enroll('CI Yönetici 2','ci-evidence-delete-admin2-v1','admin')
+
+          _,users=call(API,'admin/users',auth=admin1)
+          tester_id=next(x['id'] for x in users if x['display_name']=='CI Tester')
+          admin1_id=next(x['id'] for x in users if x['display_name']=='CI Yönetici')
+          admin2_id=next(x['id'] for x in users if x['display_name']=='CI Yönetici 2')
+
+          key='CIDELETE'+uuid.uuid4().hex[:7].upper()
+          name='CI Kanıt Silme '+key
+          _,project=call(API,'projects','POST',{'key':key,'name':name,'section_label':'Bölüm'},admin1)
+          pid=project['id']
+          prefix=f'projects/{pid}/'
+
+          s3=boto3.client(
+              's3',endpoint_url=ENDPOINT,
+              aws_access_key_id=os.environ['HF_S3_ACCESS_KEY'],
+              aws_secret_access_key=os.environ['HF_S3_SECRET_KEY'],
+              config=Config(region_name='us-east-1',s3={'addressing_style':'path'},request_checksum_calculation='when_required',response_checksum_validation='when_required'))
+
+          try:
+              call(API,f'admin/projects/{pid}/members','PUT',{'user_ids':[tester_id,admin1_id,admin2_id]},admin1)
+              _,bug=call(API,'bugs','POST',{
+                  'project_id':pid,
+                  'title':'CI silinebilir kanıt',
+                  'bug_type':'Teknik Problem',
+                  'trigger':'Normal oynanış',
+                  'description':'Kanıt kalıcı silme smoke testi',
+                  'repro_attempts':1,
+                  'repro_hits':1,
+              },tester)
+
+              payload=b'CI-EVIDENCE-DELETE\n'+os.urandom(128*1024)
+              sha=hashlib.sha256(payload).hexdigest()
+              _,init=call(FILES,f"bugs/{bug['id']}/evidence/init",'POST',{
+                  'filename':'ci-delete-video.mp4','size_bytes':len(payload),'sha256':sha,'media_type':'video/mp4'
+              },tester)
+              put=requests.put(init['upload_url'],data=payload,headers={'Content-Type':'video/mp4'},timeout=120)
+              assert put.status_code<400,(put.status_code,put.text[:1000])
+              _,asset=call(FILES,f"bugs/{bug['id']}/evidence/finalize",'POST',{
+                  'storage_path':init['storage_path'],'filename':init['filename'],'media_type':'video/mp4',
+                  'size_bytes':len(payload),'sha256':sha
+              },tester)
+
+              s3.head_object(Bucket=BUCKET,Key=init['storage_path'])
+              _,detail=call(API,f"admin/bugs/{bug['id']}",auth=admin1)
+              assert any(x['id']==asset['id'] for x in detail['evidence'])
+              print('Evidence upload + HF object + DB metadata: OK')
+
+              call(FILES,f"evidence/{asset['id']}",'DELETE',None,tester,403)
+              print('Tester permanent delete forbidden: OK')
+
+              _,deleted=call(FILES,f"evidence/{asset['id']}",'DELETE',None,admin1,200)
+              assert deleted['status']=='deleted'
+
+              try:
+                  s3.head_object(Bucket=BUCKET,Key=init['storage_path'])
+                  raise AssertionError('HF object silme sonrası hâlâ mevcut.')
+              except ClientError as exc:
+                  assert exc.response['ResponseMetadata']['HTTPStatusCode']==404,exc
+
+              _,detail_after=call(API,f"admin/bugs/{bug['id']}",auth=admin1)
+              assert not any(x['id']==asset['id'] for x in detail_after['evidence'])
+              call(FILES,f"evidence/{asset['id']}/download",'GET',None,admin1,404)
+              print('Admin permanent delete -> HF 404 + DB removed + download 404: OK')
+
+              call(API,f'projects/{pid}/close','POST',None,admin1)
+              _,purge=call(API,f'admin/projects/{pid}/purge-requests','POST',{
+                  'project_name':name,'delete_storage':True,'delete_database':True,'delete_audit_tombstone':False
+              },admin1)
+              _,approved=call(API,f"admin/purge-requests/{purge['id']}/approve",'POST',{
+                  'project_name':name,'confirmation_code':purge['confirmation_code']
+              },admin2)
+              assert approved['status']=='completed',approved
+              print('Disposable project cleanup purge: OK')
+          finally:
+              try:
+                  remaining=s3.list_objects_v2(Bucket=BUCKET,Prefix=prefix)
+                  for item in remaining.get('Contents',[]):
+                      s3.delete_object(Bucket=BUCKET,Key=item['Key'])
+              except Exception:
+                  pass
+
+          print('HF Evidence Permanent Delete Smoke: ALL OK')
+          PY

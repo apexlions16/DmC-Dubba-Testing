@@ -1,0 +1,74 @@
+name: Live Single Admin Delete Smoke
+
+on:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - 'supabase/functions/qa-files/**'
+      - 'src/Shared/LiveFileApiExtensions.cs'
+      - '.github/workflows/live-single-delete-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  QA_API: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-api/
+  QA_FILES: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-files/
+
+jobs:
+  single-admin-delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'requests>=2.32,<3'
+      - name: Tek admin bug ve proje silme
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, os, uuid, requests
+          API=os.environ['QA_API']; FILES=os.environ['QA_FILES']
+          def call(base,path='',method='GET',body=None,auth=None,expected=None):
+              h={'Accept':'application/json'}
+              if auth: h['Authorization']=auth
+              r=requests.request(method,base+path,json=body,headers=h,timeout=90,allow_redirects=False)
+              if expected is not None: assert r.status_code==expected,(method,path,r.status_code,r.text[:1000])
+              elif r.status_code>=400: raise RuntimeError(f'{method} {path}: HTTP {r.status_code}: {r.text[:1000]}')
+              d=r.json() if r.content and 'json' in r.headers.get('content-type','') else None
+              return r,d
+          def enroll(name,installation,kind):
+              _,d=call(API,'auth/enroll','POST',{'display_name':name,'installation_id':installation,'device_name':'Single Delete CI','client_kind':kind})
+              return f"Device {d['device_id']}.{d['credential']}"
+          admin=enroll('CI TekSil Yönetici','ci-single-delete-admin-v1','admin')
+          tester=enroll('CI TekSil Tester','ci-single-delete-tester-v1','tester')
+          _,users=call(API,'admin/users',auth=admin)
+          tester_id=next(x['id'] for x in users if x['display_name']=='CI TekSil Tester')
+          admin_id=next(x['id'] for x in users if x['display_name']=='CI TekSil Yönetici')
+          key='CISINGLE'+uuid.uuid4().hex[:6].upper(); name='CI Tek Yönetici Silme '+key
+          _,p=call(API,'projects','POST',{'key':key,'name':name,'section_label':'Bölüm'},admin); pid=p['id']
+          call(API,f'admin/projects/{pid}/members','PUT',{'user_ids':[tester_id,admin_id]},admin)
+          def new_bug(title):
+              _,b=call(API,'bugs','POST',{'project_id':pid,'title':title,'bug_type':'Teknik Problem','trigger':'Normal oynanış','description':'CI tam silme smoke','repro_attempts':1,'repro_hits':1},tester)
+              return b
+          def evidence(bug):
+              payload=b'SINGLE-DELETE-SMOKE\n'+os.urandom(32768); sha=hashlib.sha256(payload).hexdigest()
+              _,init=call(FILES,f"bugs/{bug['id']}/evidence/init",'POST',{'filename':'delete-smoke.mp4','size_bytes':len(payload),'sha256':sha,'media_type':'video/mp4'},tester)
+              put=requests.put(init['upload_url'],data=payload,headers={'Content-Type':'video/mp4'},timeout=120); assert put.status_code<400,(put.status_code,put.text[:500])
+              _,asset=call(FILES,f"bugs/{bug['id']}/evidence/finalize",'POST',{'storage_path':init['storage_path'],'filename':init['filename'],'media_type':'video/mp4','size_bytes':len(payload),'sha256':sha},tester)
+              return asset
+          bug1=new_bug('CI tek admin bug delete'); evidence(bug1)
+          call(FILES,f"bugs/{bug1['id']}",'DELETE',None,admin,200)
+          _,bugs=call(API,f'admin/projects/{pid}/bugs',auth=admin); assert not any(x['id']==bug1['id'] for x in bugs)
+          call(API,f"admin/bugs/{bug1['id']}",'GET',None,admin,404)
+          print('Single admin bug delete + UI list source removal: OK')
+          bug2=new_bug('CI tek admin project delete'); asset2=evidence(bug2)
+          call(FILES,f'projects/{pid}','DELETE',{'project_name':name},admin,200)
+          _,projects=call(API,'projects',auth=admin); assert not any(x['id']==pid for x in projects)
+          call(FILES,f"evidence/{asset2['id']}/download",'GET',None,admin,404)
+          print('Single admin project delete + project list removal + evidence removal: OK')
+          print('Live Single Admin Delete Smoke: ALL OK')
+          PY

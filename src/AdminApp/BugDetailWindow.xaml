@@ -1,0 +1,176 @@
+<Window x:Class="DmC.Qa.Admin.BugDetailWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DmC QA • Hata Detayı" Height="920" Width="1320" MinHeight="780" MinWidth="1120"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource WindowBackgroundBrush}" Foreground="White">
+    <Grid Background="{StaticResource WindowBackgroundBrush}" Margin="22">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="1.08*"/><ColumnDefinition Width="0.92*"/></Grid.ColumnDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+
+        <Border Grid.ColumnSpan="2" Style="{StaticResource CardStyle}" Padding="18" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="54" Height="54" CornerRadius="14" Background="#272457FF" Margin="0,0,14,0">
+                    <TextBlock Text="◈" FontSize="24" Foreground="#A9BEFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock x:Name="BugKeyText" FontSize="11" FontWeight="Bold" Foreground="#7FA4FF"/>
+                    <TextBlock x:Name="TitleText" FontSize="24" FontWeight="Bold" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                    <TextBlock x:Name="MetaText" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+                </StackPanel>
+                <Button x:Name="RetestButton" Grid.Column="2" Content="↻ Yeniden Test İste" VerticalAlignment="Center"
+                        Style="{StaticResource AccentButton}" Click="RetestButton_Click"/>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+            <StackPanel>
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="TESTER RAPORU" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
+                        <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" FontSize="14" Margin="0,12,0,12" LineHeight="21"/>
+                        <Border Background="#111E35" CornerRadius="10" Padding="11">
+                            <StackPanel>
+                                <TextBlock x:Name="ReproText" Foreground="#C4D0E6"/>
+                                <TextBlock x:Name="TimestampText" Foreground="{StaticResource WarningBrush}" Margin="0,5,0,0" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="YÖNETİCİ DEĞERLENDİRMESİ" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Durum" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <ComboBox x:Name="StatusPicker" Height="40"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Teknik Kök Neden" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <ComboBox x:Name="RootCausePicker" Height="40" IsEditable="True"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Text="Yönetici Notu" FontWeight="SemiBold" Margin="0,14,0,6"/>
+                        <TextBox x:Name="AdminNoteInput" Height="100" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                        <Button x:Name="SaveStatusButton" Content="Değişiklikleri Kaydet" HorizontalAlignment="Left"
+                                Style="{StaticResource AccentButton}" Margin="0,13,0,0" Click="SaveStatusButton_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}" Padding="1" ClipToBounds="True">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <StackPanel Margin="16,14,16,10">
+                            <TextBlock Text="HAREKET GEÇMİŞİ" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
+                            <TextBlock Text="Raporun oluşturulmasından çözüme kadar bütün durum değişimleri." Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,3,0,0"/>
+                        </StackPanel>
+                        <DataGrid Grid.Row="1" x:Name="EventsGrid" Height="270" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Tarih" Binding="{Binding Date}" Width="150"/>
+                                <DataGridTextColumn Header="Kişi" Binding="{Binding Actor}" Width="120"/>
+                                <DataGridTextColumn Header="Olay" Binding="{Binding Event}" Width="150"/>
+                                <DataGridTextColumn Header="Durum" Binding="{Binding Status}" Width="155"/>
+                                <DataGridTextColumn Header="Not" Binding="{Binding Note}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1" Grid.Column="1">
+            <Grid.RowDefinitions><RowDefinition Height="1.55*"/><RowDefinition Height="0.75*"/></Grid.RowDefinitions>
+            <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,12" Background="#F005080E">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid Margin="5,4,5,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="VİDEO KANITI" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
+                            <TextBlock Text="Tester'ın işaretlediği hata anına doğrudan gidebilir, zaman çizgisinden videoyu inceleyebilirsiniz." Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" x:Name="VideoStatusText" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <Border Grid.Row="1" Background="Black" CornerRadius="12" ClipToBounds="True" BorderBrush="#263A61" BorderThickness="1">
+                        <MediaElement x:Name="VideoPlayer"
+                                      LoadedBehavior="Manual"
+                                      UnloadedBehavior="Close"
+                                      Stretch="Uniform"
+                                      ScrubbingEnabled="True"
+                                      Volume="0.85"
+                                      MediaOpened="VideoPlayer_MediaOpened"
+                                      MediaEnded="VideoPlayer_MediaEnded"
+                                      MediaFailed="VideoPlayer_MediaFailed"/>
+                    </Border>
+
+                    <Border Grid.Row="2" Margin="0,10,0,0" Padding="10" CornerRadius="12" Background="#D90A1222" BorderBrush="#263A61" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock x:Name="CurrentTimeText" Text="00:00" Foreground="#DCE6FF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="2,0,10,0"/>
+                                <Slider x:Name="SeekSlider" Grid.Column="1" Minimum="0" Maximum="1" Value="0" Height="24"
+                                        IsMoveToPointEnabled="True" Foreground="#527BFF" Background="#1B2C4A"
+                                        PreviewMouseLeftButtonDown="SeekSlider_PreviewMouseLeftButtonDown"
+                                        PreviewMouseLeftButtonUp="SeekSlider_PreviewMouseLeftButtonUp"
+                                        ValueChanged="SeekSlider_ValueChanged"/>
+                                <TextBlock x:Name="DurationText" Grid.Column="2" Text="00:00" Foreground="#8EA2C7" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,2,0"/>
+                            </Grid>
+
+                            <Grid Grid.Row="1" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <WrapPanel VerticalAlignment="Center">
+                                    <Button x:Name="PlayPauseButton" Content="▶ Oynat" Click="PlayPause_Click" MinWidth="82"/>
+                                    <Button Content="↶ 10 sn" Click="Rewind10_Click" ToolTip="10 saniye geri"/>
+                                    <Button Content="10 sn ↷" Click="Forward10_Click" ToolTip="10 saniye ileri"/>
+                                    <Button Content="■" Width="42" Click="Stop_Click" ToolTip="Durdur"/>
+                                    <Button Content="◎ Hata Anına Git" Style="{StaticResource AccentButton}" Click="SeekTimestamp_Click"/>
+                                </WrapPanel>
+
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <Button x:Name="MuteButton" Content="🔊" Width="42" Click="Mute_Click" ToolTip="Sesi kapat/aç"/>
+                                    <Slider x:Name="VolumeSlider" Width="82" Minimum="0" Maximum="1" Value="0.85" SmallChange="0.05" LargeChange="0.1"
+                                            VerticalAlignment="Center" Foreground="#527BFF" Background="#1B2C4A" ValueChanged="VolumeSlider_ValueChanged"/>
+                                    <Button Content="⛶" Width="42" Click="Fullscreen_Click" ToolTip="Tam ekran" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="1" ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid Margin="16,14,16,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="KANIT DOSYALARI" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
+                            <TextBlock Text="Video veya görsele çift tıklayarak açın." Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                        </StackPanel>
+                        <Button x:Name="DeleteEvidenceButton" Grid.Column="1" Content="🗑 Kalıcı Sil" IsEnabled="False" Visibility="Collapsed"
+                                Click="DeleteEvidenceButton_Click" Padding="12,7" Margin="10,0,0,0"
+                                Background="#3A1018" Foreground="#FF9AA7" BorderBrush="#7D2635" BorderThickness="1"/>
+                    </Grid>
+                    <ListBox Grid.Row="1" x:Name="EvidenceList" DisplayMemberPath="Filename" Background="#07101D" Foreground="White"
+                             BorderThickness="0" MouseDoubleClick="EvidenceList_MouseDoubleClick" SelectionChanged="EvidenceList_SelectionChanged"/>
+                    <TextBlock Grid.Row="2" Text="MP4 uygulama içinde oynar; seçili kanıt yönetici tarafından HF ve veritabanından kalıcı olarak silinebilir."
+                               Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="10" Margin="16,9,16,13"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

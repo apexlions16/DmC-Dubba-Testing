@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>DmC.Qa.Admin</AssemblyName>
+    <RootNamespace>DmC.Qa.Admin</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Shared.csproj" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Assets\dmc-qa-logo.png" />
+    <Resource Include="Assets\dmc-qa-logo.png" />
+  </ItemGroup>
+</Project>

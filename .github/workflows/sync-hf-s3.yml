@@ -1,0 +1,159 @@
+name: HF S3 Credentials Sync
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - '.github/workflows/sync-hf-s3.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  SUPABASE_SECRET_BOOTSTRAP_URL: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-secret-bootstrap
+  HF_S3_ENDPOINT: https://s3.hf.co/xykeskin
+  HF_S3_BUCKET: dmc-turkish-dub-qa-archive
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+  AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HF_S3_ACCESS_KEY: ${{ secrets.HF_S3_ACCESS_KEY }}
+      HF_S3_SECRET_KEY: ${{ secrets.HF_S3_SECRET_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.HF_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HF_S3_SECRET_KEY }}
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: S3 test bağımlılıklarını kur
+        run: pip install 'boto3>=1.35,<2'
+
+      - name: GitHub S3 secretlarını doğrula
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$HF_S3_ACCESS_KEY" ] || [ -z "$HF_S3_SECRET_KEY" ]; then
+            echo 'HF_S3_ACCESS_KEY ve HF_S3_SECRET_KEY GitHub Actions Secrets içinde bulunmalıdır.' >&2
+            exit 1
+          fi
+          if [[ "$HF_S3_ACCESS_KEY" != HFAK* ]]; then
+            echo 'HF_S3_ACCESS_KEY beklenen HFAK önekiyle başlamıyor.' >&2
+            exit 1
+          fi
+          echo 'HF S3 credential secretları mevcut. Değerleri loglanmayacak.'
+
+      - name: HF S3 Put/Get/List/Delete probe
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import os
+          import uuid
+          import boto3
+          from botocore.config import Config
+          from botocore.exceptions import ClientError
+
+          endpoint = os.environ['HF_S3_ENDPOINT']
+          bucket = os.environ['HF_S3_BUCKET']
+          key = f"_system/s3-probes/{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}-{uuid.uuid4().hex}.txt"
+          payload = f"Game QA HF S3 probe {os.environ['GITHUB_SHA']}\n".encode()
+
+          s3 = boto3.client(
+              's3',
+              endpoint_url=endpoint,
+              aws_access_key_id=os.environ['HF_S3_ACCESS_KEY'],
+              aws_secret_access_key=os.environ['HF_S3_SECRET_KEY'],
+              config=Config(
+                  region_name='us-east-1',
+                  s3={'addressing_style': 'path'},
+                  request_checksum_calculation='when_required',
+                  response_checksum_validation='when_required',
+              ),
+          )
+
+          uploaded = False
+          try:
+              s3.put_object(Bucket=bucket, Key=key, Body=payload, ContentType='text/plain')
+              uploaded = True
+              print('PUT: OK')
+
+              response = s3.get_object(Bucket=bucket, Key=key)
+              downloaded = response['Body'].read()
+              if hashlib.sha256(downloaded).digest() != hashlib.sha256(payload).digest():
+                  raise RuntimeError('GET_CONTENT_MISMATCH')
+              print('GET: OK')
+
+              listed = s3.list_objects_v2(Bucket=bucket, Prefix=key)
+              keys = [item['Key'] for item in listed.get('Contents', [])]
+              if key not in keys:
+                  raise RuntimeError(f'LIST_KEY_NOT_FOUND count={len(keys)}')
+              print(f'LIST: OK ({len(keys)} eşleşme)')
+
+              s3.delete_object(Bucket=bucket, Key=key)
+              uploaded = False
+              print('DELETE: OK')
+          except ClientError as exc:
+              error = exc.response.get('Error', {})
+              raise SystemExit(f"HF S3 ClientError: {error.get('Code', 'UNKNOWN')} - {error.get('Message', '')}") from exc
+          finally:
+              if uploaded:
+                  try:
+                      s3.delete_object(Bucket=bucket, Key=key)
+                  except Exception:
+                      pass
+          PY
+
+      - name: S3 credentiallarını GitHub OIDC ile Supabase Vault'a aktar
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+
+          request_url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL']
+          request_token = os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']
+          separator = '&' if '?' in request_url else '?'
+          oidc_url = request_url + separator + urllib.parse.urlencode({'audience': 'game-qa-supabase-bootstrap'})
+          req = urllib.request.Request(
+              oidc_url,
+              headers={'Authorization': f'Bearer {request_token}', 'Accept': 'application/json'},
+          )
+          with urllib.request.urlopen(req, timeout=20) as response:
+              oidc = json.load(response)['value']
+
+          payload = json.dumps({
+              'hf_s3_access_key': os.environ['HF_S3_ACCESS_KEY'],
+              'hf_s3_secret_key': os.environ['HF_S3_SECRET_KEY'],
+          }).encode('utf-8')
+          bootstrap = urllib.request.Request(
+              os.environ['SUPABASE_SECRET_BOOTSTRAP_URL'],
+              data=payload,
+              method='POST',
+              headers={
+                  'Authorization': f'Bearer {oidc}',
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+              },
+          )
+          with urllib.request.urlopen(bootstrap, timeout=30) as response:
+              result = json.load(response)
+          expected = {'HF_S3_ACCESS_KEY', 'HF_S3_SECRET_KEY'}
+          if result.get('status') != 'ok' or not expected.issubset(set(result.get('stored', []))):
+              raise SystemExit('Supabase Vault S3 secret aktarımı doğrulanamadı.')
+          print('HF S3 credentialları Supabase Vault içinde güncellendi; değerler loglanmadı.')
+          PY
+
+      - name: Sonuç
+        run: echo 'HF S3 gateway ve Supabase Vault senkronu hazır.'

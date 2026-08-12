@@ -1,0 +1,95 @@
+name: HF Build Archive Smoke
+
+on:
+  push:
+    branches:
+      - agent/qa-platform-foundation
+    paths:
+      - '.github/workflows/hf-build-archive-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  QA_API: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-api/
+  QA_FILES: https://mhzhmeamsvhmcjztsdys.supabase.co/functions/v1/qa-files/
+  HF_S3_ENDPOINT: https://s3.hf.co/xykeskin
+  HF_S3_BUCKET: dmc-turkish-dub-qa-archive
+
+jobs:
+  archive-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.HF_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HF_S3_SECRET_KEY }}
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'requests>=2.32,<3' 'boto3>=1.35,<2'
+      - name: Active build'i HF archived namespace'ine taşı
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, os, uuid, requests, boto3
+          from botocore.config import Config
+
+          API=os.environ['QA_API']; FILES=os.environ['QA_FILES']
+          BUCKET=os.environ['HF_S3_BUCKET']; ENDPOINT=os.environ['HF_S3_ENDPOINT']
+
+          def call(base,path='',method='GET',body=None,auth=None):
+              headers={'Accept':'application/json'}
+              if auth: headers['Authorization']=auth
+              r=requests.request(method,base+path,json=body,headers=headers,timeout=90,allow_redirects=False)
+              if r.status_code>=400:
+                  try: detail=r.json()
+                  except Exception: detail=r.text[:800]
+                  raise RuntimeError(f'{method} {path}: HTTP {r.status_code}: {detail}')
+              return r, (r.json() if r.content and 'json' in r.headers.get('content-type','') else None)
+
+          def enroll(name,installation):
+              _,x=call(API,'auth/enroll','POST',{'display_name':name,'installation_id':installation,'device_name':'HF Archive Smoke','client_kind':'admin'})
+              return f"Device {x['device_id']}.{x['credential']}",x
+
+          admin1,a1=enroll('CI Yönetici','ci-live-direct-admin1-v1')
+          admin2,a2=enroll('CI Yönetici 2','ci-live-direct-admin2-v1')
+          _,users=call(API,'admin/users',auth=admin1)
+          a1id=next(x['id'] for x in users if x['display_name']=='CI Yönetici')
+          a2id=next(x['id'] for x in users if x['display_name']=='CI Yönetici 2')
+          key='CIARCH'+uuid.uuid4().hex[:8].upper(); name='CI Arşiv Silinebilir '+key
+          _,p=call(API,'projects','POST',{'key':key,'name':name,'section_label':'Bölüm'},admin1); pid=p['id']
+          call(API,f'admin/projects/{pid}/members','PUT',{'user_ids':[a1id,a2id]},admin1)
+
+          s3=boto3.client('s3',endpoint_url=ENDPOINT,config=Config(region_name='us-east-1',s3={'addressing_style':'path'},request_checksum_calculation='when_required',response_checksum_validation='when_required'))
+          prefix=f'projects/{pid}/'
+          try:
+              _,b=call(API,f'projects/{pid}/builds','POST',{'version':'0.0.1-archive','title':'Archive Smoke','description':'CI','installation_instructions':'CI','changelog':'CI','fix_candidate_bug_ids':[]},admin1)
+              bid=b['id']; payload=b'ARCHIVE-SMOKE\n'+os.urandom(96*1024); sha=hashlib.sha256(payload).hexdigest()
+              _,init=call(FILES,f'projects/{pid}/builds/{bid}/file/init','POST',{'filename':'archive-smoke.bin','size_bytes':len(payload),'sha256':sha,'media_type':'application/octet-stream'},admin1)
+              put=requests.put(init['upload_url'],data=payload,timeout=90); put.raise_for_status()
+              call(FILES,f'projects/{pid}/builds/{bid}/file/finalize','POST',{'storage_path':init['storage_path'],'filename':init['filename'],'size_bytes':len(payload),'sha256':sha,'media_type':'application/octet-stream'},admin1)
+              source=init['storage_path']; assert '/builds/active/' in source
+
+              _,arch=call(FILES,f'projects/{pid}/builds/{bid}/archive','POST',None,admin1)
+              target=arch['storage_path']; assert arch['status']=='archived' and '/builds/archived/' in target
+              assert s3.list_objects_v2(Bucket=BUCKET,Prefix=source).get('KeyCount',0)==0
+              out=s3.get_object(Bucket=BUCKET,Key=target)['Body'].read(); assert out==payload
+              _,builds=call(API,f'admin/projects/{pid}/builds',auth=admin1)
+              row=next(x for x in builds if x['id']==bid)
+              assert row['status']=='archived'
+              print('HF active -> archived CopyObject + source delete + DB update: OK')
+
+              call(API,f'projects/{pid}/close','POST',None,admin1)
+              _,purge=call(API,f'admin/projects/{pid}/purge-requests','POST',{'project_name':name,'delete_storage':True,'delete_database':True,'delete_audit_tombstone':False},admin1)
+              _,done=call(API,f"admin/purge-requests/{purge['id']}/approve",'POST',{'project_name':name,'confirmation_code':purge['confirmation_code']},admin2)
+              assert done['status']=='completed'
+              assert s3.list_objects_v2(Bucket=BUCKET,Prefix=prefix).get('KeyCount',0)==0
+              print('Archived build project purge: OK')
+          finally:
+              try:
+                  for obj in s3.list_objects_v2(Bucket=BUCKET,Prefix=prefix).get('Contents',[]): s3.delete_object(Bucket=BUCKET,Key=obj['Key'])
+              except Exception: pass
+          PY

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install backend
+        working-directory: src/api
+        run: pip install -e '.[dev]'
+      - name: Compile Python
+        run: python -m compileall -q src/api/app
+      - name: Import FastAPI application
+        working-directory: src/api
+        run: python -c "from app.application import app; print(app.title, len(app.routes))"
+      - name: Ruff correctness checks
+        working-directory: src/api
+        run: ruff check app --select E9,F63,F7,F82
+
+  windows-clients:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build shared contracts
+        run: dotnet build src/Shared/Shared.csproj -c Release
+      - name: Windows kanıt dosyası kilit regression smoke
+        run: dotnet run --project tools/DirectFileTransferSmoke/DirectFileTransferSmoke.csproj -c Release
+      - name: Build tester client
+        run: dotnet build src/TesterApp/TesterApp.csproj -c Release
+      - name: Build admin client
+        run: dotnet build src/AdminApp/AdminApp.csproj -c Release
+      - name: Build stable launcher
+        run: dotnet build src/Launcher/Launcher.csproj -c Release

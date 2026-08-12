@@ -1,0 +1,78 @@
+<Window x:Class="DmC.Qa.Admin.TeamManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ekip Yönetimi"
+        Height="720" Width="980"
+        MinHeight="620" MinWidth="860"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource SurfaceBrush}" Foreground="White">
+    <Grid Margin="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.5*" />
+            <ColumnDefinition Width="0.85*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="{StaticResource CardBrush}" CornerRadius="10" Padding="16" Margin="0,0,12,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="EKİP ÜYELERİ" FontSize="18" FontWeight="Bold" />
+                    <TextBlock Text="Tester, geliştirici ve yönetici hesaplarını buradan yönetin."
+                               Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,4,0,12" />
+                </StackPanel>
+
+                <DataGrid Grid.Row="1" x:Name="UsersGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                          SelectionMode="Single" Background="#17191D" Foreground="White"
+                          BorderBrush="#343841" SelectionChanged="UsersGrid_SelectionChanged">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Ad" Binding="{Binding DisplayName}" Width="*" />
+                        <DataGridTextColumn Header="Rol" Binding="{Binding RoleText}" Width="145" />
+                        <DataGridTextColumn Header="Durum" Binding="{Binding EnabledText}" Width="100" />
+                        <DataGridTextColumn Header="Aktif Cihaz" Binding="{Binding ActiveDevices}" Width="90" />
+                        <DataGridTextColumn Header="Oluşturulma" Binding="{Binding CreatedAtText}" Width="150" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button x:Name="ToggleEnabledButton" Content="Hesabı Devre Dışı Bırak" Click="ToggleEnabledButton_Click" />
+                    <Button x:Name="ResetDeviceButton" Content="Cihaz Eşleşmesini Sıfırla" Click="ResetDeviceButton_Click" />
+                    <Button Content="Listeyi Yenile" Click="RefreshButton_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Column="1" Background="{StaticResource CardBrush}" CornerRadius="10" Padding="18">
+            <StackPanel>
+                <TextBlock Text="YENİ EKİP ÜYESİ" FontSize="18" FontWeight="Bold" />
+                <TextBlock Text="Tester uygulamasında kullanacağı adı önceden oluşturun."
+                           Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,18" />
+
+                <TextBlock Text="Ad" FontWeight="SemiBold" Margin="0,0,0,5" />
+                <TextBox x:Name="NewUserNameInput" Height="38" Padding="8" />
+
+                <TextBlock Text="Rol" FontWeight="SemiBold" Margin="0,14,0,5" />
+                <ComboBox x:Name="RolePicker" Height="38">
+                    <ComboBoxItem Content="Test Ekibi Üyesi" Tag="tester" IsSelected="True" />
+                    <ComboBoxItem Content="Geliştirici" Tag="developer" />
+                    <ComboBoxItem Content="Yönetici" Tag="admin" />
+                </ComboBox>
+
+                <Button x:Name="CreateUserButton" Content="Kullanıcıyı Oluştur"
+                        Background="{StaticResource AccentBrush}" Foreground="White"
+                        Margin="0,18,0,0" Click="CreateUserButton_Click" />
+
+                <Separator Margin="0,20" Background="#363A42" />
+
+                <TextBlock Text="CİHAZ EŞLEŞMESİ" FontWeight="Bold" />
+                <TextBlock Text="Bir kullanıcı yeni bilgisayara geçtiğinde önce eski cihaz eşleşmesini sıfırlayın. Sonraki girişte yeni cihaz otomatik olarak güvenli biçimde eşleştirilir."
+                           Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0" />
+
+                <TextBlock x:Name="StatusText" Foreground="#FFCA28" TextWrapping="Wrap" Margin="0,18,0,0" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
