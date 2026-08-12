@@ -155,13 +155,19 @@
             <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="1" ClipToBounds="True">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <StackPanel Margin="16,14,16,8">
-                        <TextBlock Text="KANIT DOSYALARI" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
-                        <TextBlock Text="Video veya görsele çift tıklayarak açın." Foreground="{StaticResource MutedBrush}" FontSize="10"/>
-                    </StackPanel>
+                    <Grid Margin="16,14,16,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="KANIT DOSYALARI" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
+                            <TextBlock Text="Video veya görsele çift tıklayarak açın." Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                        </StackPanel>
+                        <Button x:Name="DeleteEvidenceButton" Grid.Column="1" Content="🗑 Kalıcı Sil" IsEnabled="False" Visibility="Collapsed"
+                                Click="DeleteEvidenceButton_Click" Padding="12,7" Margin="10,0,0,0"
+                                Background="#3A1018" Foreground="#FF9AA7" BorderBrush="#7D2635" BorderThickness="1"/>
+                    </Grid>
                     <ListBox Grid.Row="1" x:Name="EvidenceList" DisplayMemberPath="Filename" Background="#07101D" Foreground="White"
-                             BorderThickness="0" MouseDoubleClick="EvidenceList_MouseDoubleClick"/>
-                    <TextBlock Grid.Row="2" Text="MP4 uygulama içinde oynar; diğer desteklenen kanıtlar varsayılan Windows uygulamasıyla açılır."
+                             BorderThickness="0" MouseDoubleClick="EvidenceList_MouseDoubleClick" SelectionChanged="EvidenceList_SelectionChanged"/>
+                    <TextBlock Grid.Row="2" Text="MP4 uygulama içinde oynar; seçili kanıt yönetici tarafından HF ve veritabanından kalıcı olarak silinebilir."
                                Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="10" Margin="16,9,16,13"/>
                 </Grid>
             </Border>
