@@ -81,23 +81,74 @@
         </ScrollViewer>
 
         <Grid Grid.Row="1" Grid.Column="1">
-            <Grid.RowDefinitions><RowDefinition Height="1.35*"/><RowDefinition Height="0.75*"/></Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="1.55*"/><RowDefinition Height="0.75*"/></Grid.RowDefinitions>
             <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,12" Background="#F005080E">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <Grid Margin="5,4,5,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <StackPanel><TextBlock Text="VİDEO KANITI" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/><TextBlock Text="Tester'ın işaretlediği hata anına doğrudan gidebilirsiniz." Foreground="{StaticResource MutedBrush}" FontSize="10"/></StackPanel>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid Margin="5,4,5,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="VİDEO KANITI" Foreground="#7FA4FF" FontWeight="Bold" FontSize="11"/>
+                            <TextBlock Text="Tester'ın işaretlediği hata anına doğrudan gidebilir, zaman çizgisinden videoyu inceleyebilirsiniz." Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                        </StackPanel>
                         <TextBlock Grid.Column="1" x:Name="VideoStatusText" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
                     </Grid>
+
                     <Border Grid.Row="1" Background="Black" CornerRadius="12" ClipToBounds="True" BorderBrush="#263A61" BorderThickness="1">
-                        <MediaElement x:Name="VideoPlayer" LoadedBehavior="Manual" UnloadedBehavior="Close" Stretch="Uniform"/>
+                        <MediaElement x:Name="VideoPlayer"
+                                      LoadedBehavior="Manual"
+                                      UnloadedBehavior="Close"
+                                      Stretch="Uniform"
+                                      ScrubbingEnabled="True"
+                                      Volume="0.85"
+                                      MediaOpened="VideoPlayer_MediaOpened"
+                                      MediaEnded="VideoPlayer_MediaEnded"
+                                      MediaFailed="VideoPlayer_MediaFailed"/>
                     </Border>
-                    <WrapPanel Grid.Row="2" Margin="4,10,4,2">
-                        <Button Content="▶ Oynat" Click="Play_Click"/>
-                        <Button Content="Ⅱ Duraklat" Click="Pause_Click"/>
-                        <Button Content="■ Durdur" Click="Stop_Click"/>
-                        <Button Content="◎ Hata Anına Git" Style="{StaticResource AccentButton}" Click="SeekTimestamp_Click"/>
-                    </WrapPanel>
+
+                    <Border Grid.Row="2" Margin="0,10,0,0" Padding="10" CornerRadius="12" Background="#D90A1222" BorderBrush="#263A61" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock x:Name="CurrentTimeText" Text="00:00" Foreground="#DCE6FF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="2,0,10,0"/>
+                                <Slider x:Name="SeekSlider" Grid.Column="1" Minimum="0" Maximum="1" Value="0" Height="24"
+                                        IsMoveToPointEnabled="True" Foreground="#527BFF" Background="#1B2C4A"
+                                        PreviewMouseLeftButtonDown="SeekSlider_PreviewMouseLeftButtonDown"
+                                        PreviewMouseLeftButtonUp="SeekSlider_PreviewMouseLeftButtonUp"
+                                        ValueChanged="SeekSlider_ValueChanged"/>
+                                <TextBlock x:Name="DurationText" Grid.Column="2" Text="00:00" Foreground="#8EA2C7" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,2,0"/>
+                            </Grid>
+
+                            <Grid Grid.Row="1" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <WrapPanel VerticalAlignment="Center">
+                                    <Button x:Name="PlayPauseButton" Content="▶ Oynat" Click="PlayPause_Click" MinWidth="82"/>
+                                    <Button Content="↶ 10 sn" Click="Rewind10_Click" ToolTip="10 saniye geri"/>
+                                    <Button Content="10 sn ↷" Click="Forward10_Click" ToolTip="10 saniye ileri"/>
+                                    <Button Content="■" Width="42" Click="Stop_Click" ToolTip="Durdur"/>
+                                    <Button Content="◎ Hata Anına Git" Style="{StaticResource AccentButton}" Click="SeekTimestamp_Click"/>
+                                </WrapPanel>
+
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <Button x:Name="MuteButton" Content="🔊" Width="42" Click="Mute_Click" ToolTip="Sesi kapat/aç"/>
+                                    <Slider x:Name="VolumeSlider" Width="82" Minimum="0" Maximum="1" Value="0.85" SmallChange="0.05" LargeChange="0.1"
+                                            VerticalAlignment="Center" Foreground="#527BFF" Background="#1B2C4A" ValueChanged="VolumeSlider_ValueChanged"/>
+                                    <Button Content="⛶" Width="42" Click="Fullscreen_Click" ToolTip="Tam ekran" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 
