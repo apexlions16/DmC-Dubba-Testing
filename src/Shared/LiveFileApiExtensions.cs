@@ -105,6 +105,26 @@ public static class LiveFileApiExtensions
             cancellationToken: cancellationToken);
     }
 
+    public static async Task DeleteEvidenceForCurrentBackendAsync(
+        this PlatformApiClient client,
+        string assetId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!DirectFileTransfer.TryResolveFilesBase(client.BaseAddress, out var filesBase))
+        {
+            throw new QaApiException("Kanıtı kalıcı silme işlemi yalnızca canlı Supabase + Hugging Face backend'inde kullanılabilir.");
+        }
+
+        using var http = new HttpClient
+        {
+            BaseAddress = filesBase,
+            Timeout = TimeSpan.FromMinutes(5)
+        };
+        ApplyAuthorization(http, client.DeviceAuthorization);
+        using var response = await http.DeleteAsync($"evidence/{assetId}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public static async Task ArchiveBuildForCurrentBackendAsync(
         this PlatformApiClient client,
         string projectId,
