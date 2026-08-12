@@ -1,6 +1,6 @@
-import { ApiError, eq, insert, json, one, patch, rows } from './db.ts';
+import { ApiError, del, eq, insert, json, one, patch, rows } from './db.ts';
 import { authenticate, canBuild, isAdmin, projectAccess } from './auth.ts';
-import { headObject, moveObject, presign, ready } from './s3.ts';
+import { deleteObject, headObject, moveObject, presign, ready } from './s3.ts';
 
 function route(req:Request){const p=new URL(req.url).pathname,m='/qa-files',i=p.indexOf(m);return(i>=0?p.slice(i+m.length):p)||'/';}
 async function body(req:Request){try{return await req.json();}catch{return {};}}
@@ -13,7 +13,7 @@ async function retest(id:string){const r=await one('retest_requests',`select=id,
 async function verifyUploaded(path:string, expectedSize:number|null){const h=await headObject(path);if(expectedSize!==null&&h.size!==expectedSize)throw new ApiError(409,`HF üzerindeki dosya boyutu beklenen değerle eşleşmiyor (${h.size}/${expectedSize}).`);}
 
 Deno.serve(async req=>{try{
-  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,content-type','Access-Control-Allow-Methods':'GET,POST,OPTIONS'}});
+  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,content-type','Access-Control-Allow-Methods':'GET,POST,DELETE,OPTIONS'}});
   const r=route(req);
   if(r==='/'||r==='/health')return json({status:'ok',s3_ready:await ready(),storage:'xykeskin/dmc-turkish-dub-qa-archive'});
   const u=await authenticate(req);let m;
@@ -40,6 +40,8 @@ Deno.serve(async req=>{try{
   if(m&&req.method==='GET'){await projectAccess(u,m[1]);const b=await one('builds',`select=storage_path&id=${eq(m[2])}&project_id=${eq(m[1])}`);if(!b?.storage_path)throw new ApiError(404,'Build dosyası bulunamadı.');return new Response(null,{status:302,headers:{Location:await presign('GET',b.storage_path,3600)}});}
   m=r.match(/^\/evidence\/([^/]+)\/download$/);
   if(m&&req.method==='GET'){const a=await one('evidence_assets',`select=id,project_id,storage_path&id=${eq(m[1])}`);if(!a)throw new ApiError(404,'Kanıt dosyası bulunamadı.');await projectAccess(u,a.project_id);return new Response(null,{status:302,headers:{Location:await presign('GET',a.storage_path,3600)}});}
+  m=r.match(/^\/evidence\/([^/]+)$/);
+  if(m&&req.method==='DELETE'){if(!isAdmin(u))throw new ApiError(403,'Kanıt dosyasını yalnızca yönetici kalıcı olarak silebilir.');const a=await one('evidence_assets',`select=id,project_id,storage_path,original_filename&id=${eq(m[1])}`);if(!a)throw new ApiError(404,'Kanıt dosyası bulunamadı.');await projectAccess(u,a.project_id,true);const prefix=`projects/${a.project_id}/`;if(!String(a.storage_path||'').startsWith(prefix))throw new ApiError(409,'Kanıt storage yolu proje alanıyla eşleşmiyor.');await deleteObject(String(a.storage_path));const removed=await del('evidence_assets',`id=${eq(a.id)}&project_id=${eq(a.project_id)}`);if(!removed.length)throw new ApiError(502,'Kanıt dosyası HF’den silindi ancak veritabanı kaydı kaldırılamadı.');return json({status:'deleted',id:a.id,filename:a.original_filename});}
 
   throw new ApiError(404,'Dosya API yolu bulunamadı.');
 }catch(e){if(e instanceof ApiError)return json({detail:e.message},e.status);console.error('qa-files',e);return json({detail:'Dosya servisinde beklenmeyen bir hata oluştu.'},500);}});
