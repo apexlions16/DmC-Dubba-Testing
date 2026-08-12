@@ -62,7 +62,16 @@ public partial class BugDetailWindow
                 VideoStatusText.Text = "Varsayılan uygulamada açıldı";
             }
         }
-        catch (Exception ex) when (ex is QaApiException or HttpRequestException or IOException or TaskCanceledException)
+        catch (IOException)
+        {
+            MessageBox.Show(
+                "Kanıt dosyası hazırlanırken Windows dosyayı kullanıyor görünüyor. Lütfen birkaç saniye sonra yeniden deneyin. Sorun devam ederse Yönetim Merkezi'ni kapatıp tekrar açın.",
+                "Kanıt Dosyası",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            VideoStatusText.Text = "Dosya kullanımda";
+        }
+        catch (Exception ex) when (ex is QaApiException or HttpRequestException or TaskCanceledException)
         {
             MessageBox.Show(ex.Message, "Kanıt Dosyası", MessageBoxButton.OK, MessageBoxImage.Error);
             VideoStatusText.Text = "Açılamadı";
